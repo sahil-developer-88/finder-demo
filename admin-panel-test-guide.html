@@ -1,0 +1,728 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>SwapShop Admin Panel — Test Guide</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      font-size: 14px;
+      color: #1a1a1a;
+      background: #f5f5f5;
+      padding: 32px 16px;
+    }
+
+    .page {
+      max-width: 900px;
+      margin: 0 auto;
+      background: #fff;
+      border-radius: 12px;
+      box-shadow: 0 2px 20px rgba(0,0,0,0.08);
+      overflow: hidden;
+    }
+
+    /* Header */
+    .header {
+      background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+      padding: 40px 40px 32px;
+      color: white;
+    }
+    .header .badge {
+      display: inline-block;
+      background: rgba(16,185,129,0.2);
+      border: 1px solid rgba(16,185,129,0.4);
+      color: #6ee7b7;
+      font-size: 11px;
+      font-weight: 600;
+      letter-spacing: 1px;
+      text-transform: uppercase;
+      padding: 4px 12px;
+      border-radius: 20px;
+      margin-bottom: 16px;
+    }
+    .header h1 {
+      font-size: 28px;
+      font-weight: 700;
+      margin-bottom: 8px;
+      color: #fff;
+    }
+    .header p {
+      color: rgba(255,255,255,0.6);
+      font-size: 14px;
+      line-height: 1.6;
+    }
+    .header .meta {
+      display: flex;
+      gap: 24px;
+      margin-top: 20px;
+      padding-top: 20px;
+      border-top: 1px solid rgba(255,255,255,0.1);
+    }
+    .header .meta-item { color: rgba(255,255,255,0.5); font-size: 12px; }
+    .header .meta-item strong { color: rgba(255,255,255,0.85); display: block; font-size: 13px; margin-bottom: 2px; }
+
+    /* Intro box */
+    .intro {
+      background: #f0fdf4;
+      border-left: 4px solid #10b981;
+      margin: 32px 40px;
+      padding: 16px 20px;
+      border-radius: 0 8px 8px 0;
+      font-size: 13.5px;
+      line-height: 1.7;
+      color: #065f46;
+    }
+
+    /* Body content */
+    .content { padding: 0 40px 48px; }
+
+    /* Section header */
+    .section {
+      margin-top: 40px;
+    }
+    .section-title {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      margin-bottom: 16px;
+      padding-bottom: 12px;
+      border-bottom: 2px solid #f0f0f0;
+    }
+    .section-number {
+      width: 32px;
+      height: 32px;
+      border-radius: 8px;
+      background: #1a1a2e;
+      color: white;
+      font-weight: 700;
+      font-size: 13px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
+    }
+    .section-title h2 {
+      font-size: 17px;
+      font-weight: 700;
+      color: #1a1a2e;
+    }
+    .section-title .subtitle {
+      font-size: 12px;
+      color: #6b7280;
+      font-weight: 400;
+      margin-top: 1px;
+    }
+
+    /* Test table */
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 13px;
+    }
+    thead tr {
+      background: #f9fafb;
+    }
+    thead th {
+      text-align: left;
+      padding: 10px 14px;
+      font-size: 11px;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      color: #6b7280;
+      border-bottom: 1px solid #e5e7eb;
+    }
+    tbody tr {
+      border-bottom: 1px solid #f3f4f6;
+      transition: background 0.1s;
+    }
+    tbody tr:last-child { border-bottom: none; }
+    tbody tr:hover { background: #fafafa; }
+    td { padding: 11px 14px; vertical-align: top; line-height: 1.55; }
+    td:first-child {
+      font-weight: 600;
+      color: #6b7280;
+      font-size: 11px;
+      white-space: nowrap;
+      width: 60px;
+    }
+    td:nth-child(2) { color: #111827; width: 38%; }
+    td:nth-child(3) { color: #374151; }
+
+    .table-wrap {
+      border: 1px solid #e5e7eb;
+      border-radius: 8px;
+      overflow: hidden;
+    }
+
+    /* Status badges */
+    .pass { display: inline-block; background: #d1fae5; color: #065f46; font-size: 11px; font-weight: 600; padding: 2px 8px; border-radius: 4px; }
+    .note { display: inline-block; background: #fef3c7; color: #92400e; font-size: 11px; font-weight: 600; padding: 2px 8px; border-radius: 4px; }
+    .warn { display: inline-block; background: #fee2e2; color: #991b1b; font-size: 11px; font-weight: 600; padding: 2px 8px; border-radius: 4px; }
+
+    /* Setup steps */
+    .steps { list-style: none; margin: 0; padding: 0; }
+    .steps li {
+      display: flex;
+      gap: 14px;
+      padding: 12px 0;
+      border-bottom: 1px solid #f3f4f6;
+      align-items: flex-start;
+    }
+    .steps li:last-child { border-bottom: none; }
+    .step-num {
+      min-width: 24px;
+      height: 24px;
+      border-radius: 50%;
+      background: #1a1a2e;
+      color: white;
+      font-size: 11px;
+      font-weight: 700;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      margin-top: 1px;
+    }
+    .step-text { font-size: 13.5px; line-height: 1.6; color: #374151; }
+    .step-text strong { color: #111827; }
+
+    /* Tip box */
+    .tip {
+      background: #eff6ff;
+      border: 1px solid #bfdbfe;
+      border-radius: 8px;
+      padding: 14px 16px;
+      margin-top: 16px;
+      font-size: 13px;
+      color: #1e40af;
+      line-height: 1.6;
+    }
+    .tip::before { content: "💡 Tip: "; font-weight: 700; }
+
+    /* Warning box */
+    .warning-box {
+      background: #fff7ed;
+      border: 1px solid #fed7aa;
+      border-radius: 8px;
+      padding: 14px 16px;
+      margin-top: 16px;
+      font-size: 13px;
+      color: #9a3412;
+      line-height: 1.6;
+    }
+    .warning-box::before { content: "⚠️  Note: "; font-weight: 700; }
+
+    /* Summary strip */
+    .summary-grid {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 12px;
+      margin: 32px 0 0;
+    }
+    .summary-card {
+      background: #f9fafb;
+      border: 1px solid #e5e7eb;
+      border-radius: 10px;
+      padding: 16px;
+      text-align: center;
+    }
+    .summary-card .num { font-size: 28px; font-weight: 800; color: #1a1a2e; }
+    .summary-card .lbl { font-size: 11px; color: #6b7280; margin-top: 4px; text-transform: uppercase; letter-spacing: 0.5px; font-weight: 600; }
+
+    /* Known gaps */
+    .gap-list { list-style: none; padding: 0; margin: 0; }
+    .gap-list li {
+      padding: 10px 14px 10px 36px;
+      position: relative;
+      border-bottom: 1px solid #f3f4f6;
+      font-size: 13px;
+      color: #374151;
+      line-height: 1.55;
+    }
+    .gap-list li::before {
+      content: "○";
+      position: absolute;
+      left: 14px;
+      color: #d1d5db;
+      font-size: 12px;
+    }
+    .gap-list li strong { color: #111827; }
+
+    /* Footer */
+    .footer {
+      background: #f9fafb;
+      border-top: 1px solid #e5e7eb;
+      padding: 20px 40px;
+      font-size: 12px;
+      color: #9ca3af;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    @media print {
+      body { background: white; padding: 0; }
+      .page { box-shadow: none; border-radius: 0; }
+      .section { page-break-inside: avoid; }
+    }
+  </style>
+</head>
+<body>
+<div class="page">
+
+  <!-- Header -->
+  <div class="header">
+    <div class="badge">Quality Assurance</div>
+    <h1>SwapShop Admin Panel<br>Test Guide</h1>
+    <p>Step-by-step instructions for testing every feature in the admin panel.<br>No technical knowledge required — just follow each step and check the result.</p>
+    <div class="meta">
+      <div class="meta-item"><strong>Platform</strong>SwapShop / BarterEx</div>
+      <div class="meta-item"><strong>Sections</strong>14 admin sections</div>
+      <div class="meta-item"><strong>Total Tests</strong>~160 checks</div>
+      <div class="meta-item"><strong>Last Updated</strong>March 2026</div>
+    </div>
+  </div>
+
+  <div class="content">
+
+    <div class="intro">
+      This document walks you through testing every part of the admin panel. For each test, you will see <strong>what to do</strong> and <strong>what you should see</strong>. If what you see does not match what is expected, mark it as a problem and report it.
+    </div>
+
+    <!-- Summary -->
+    <div class="summary-grid">
+      <div class="summary-card"><div class="num">14</div><div class="lbl">Sections</div></div>
+      <div class="summary-card"><div class="num">~160</div><div class="lbl">Test Checks</div></div>
+      <div class="summary-card"><div class="num">3</div><div class="lbl">Test Accounts</div></div>
+      <div class="summary-card"><div class="num">1</div><div class="lbl">Admin Login</div></div>
+    </div>
+
+    <!-- SETUP -->
+    <div class="section">
+      <div class="section-title">
+        <div class="section-number">0</div>
+        <div>
+          <h2>Before You Start — Setup</h2>
+          <div class="subtitle">Do these steps once before running any tests</div>
+        </div>
+      </div>
+      <ul class="steps">
+        <li>
+          <div class="step-num">1</div>
+          <div class="step-text"><strong>Log in as an Admin.</strong> Use the admin email and password provided by the developer. The admin account has special access to see all data.</div>
+        </li>
+        <li>
+          <div class="step-num">2</div>
+          <div class="step-text"><strong>Go to the Admin Panel.</strong> After logging in, navigate to <strong>/admin</strong> in the browser address bar (e.g. <em>yoursite.com/admin</em>). You should see the admin sidebar on the left.</div>
+        </li>
+        <li>
+          <div class="step-num">3</div>
+          <div class="step-text"><strong>Check the sidebar.</strong> You should see 14 menu items: Overview, Listings, Exchange Ledger, Tax &amp; 1099, Users, Activity, TX Monitor, Growth &amp; Funnel, Referrals, Liquidity, Credit Risk, System Health, Disputes, and Supply Map.</div>
+        </li>
+        <li>
+          <div class="step-num">4</div>
+          <div class="step-text"><strong>Make sure there is test data.</strong> Ask the developer to confirm there are at least a few users, businesses, and transactions in the system before testing.</div>
+        </li>
+      </ul>
+      <div class="tip">If you cannot see the admin panel or it shows "Access Denied", the admin role has not been set correctly. Contact the developer.</div>
+    </div>
+
+    <!-- ACCESS CONTROL -->
+    <div class="section">
+      <div class="section-title">
+        <div class="section-number">1</div>
+        <div>
+          <h2>Login &amp; Access Control</h2>
+          <div class="subtitle">Make sure only the right people can access the admin panel</div>
+        </div>
+      </div>
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>#</th><th>What to do</th><th>What you should see</th></tr></thead>
+          <tbody>
+            <tr><td>1.1</td><td>Log out and try to visit the admin page directly</td><td>You are redirected to the login page — not shown any admin data</td></tr>
+            <tr><td>1.2</td><td>Log in as a regular (non-admin) user and visit the admin page</td><td>Access is blocked — you see a message like "Access Denied" or are redirected away</td></tr>
+            <tr><td>1.3</td><td>Log in as the admin user and visit the admin page</td><td>The full admin panel loads with the sidebar visible</td></tr>
+            <tr><td>1.4</td><td>Click each of the 14 sidebar items one by one</td><td>Each click loads the correct section — no blank white screens or error messages</td></tr>
+            <tr><td>1.5</td><td>Click a sidebar item that has sub-items (e.g. Listings)</td><td>The sub-items appear underneath it</td></tr>
+            <tr><td>1.6</td><td>Refresh the page</td><td>All sidebar sections start collapsed (none are pre-opened)</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- OVERVIEW -->
+    <div class="section">
+      <div class="section-title">
+        <div class="section-number">2</div>
+        <div>
+          <h2>Overview</h2>
+          <div class="subtitle">The homepage of the admin panel — shows platform-wide numbers at a glance</div>
+        </div>
+      </div>
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>#</th><th>What to do</th><th>What you should see</th></tr></thead>
+          <tbody>
+            <tr><td>2.1</td><td>Click "Overview" in the sidebar</td><td>The page loads 8 number cards showing real statistics</td></tr>
+            <tr><td>2.2</td><td>Look at "Total Users"</td><td>A real number — not zero and not a placeholder like "—"</td></tr>
+            <tr><td>2.3</td><td>Look at "Active Listings"</td><td>A real number matching the businesses currently listed</td></tr>
+            <tr><td>2.4</td><td>Look at "Credits Issued"</td><td>A dollar amount (e.g. $1,200) — NOT the old fake value "$156,000"</td></tr>
+            <tr><td>2.5</td><td>Look at "Available Credits"</td><td>A real dollar amount — NOT the old fake value "$89,500"</td></tr>
+            <tr><td>2.6</td><td>Look at "1099s Required"</td><td>A real number — NOT the old fake value "45"</td></tr>
+            <tr><td>2.7</td><td>Scroll down to the two charts</td><td>Two charts appear: "Monthly Credit Growth" and "Trade Volume by Month"</td></tr>
+            <tr><td>2.8</td><td>Check the chart x-axis labels</td><td>You see real month names (e.g. Apr, May, Jun…) — not fake sample data</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <div class="warning-box">The Overview charts previously showed fake sample data. After the fix, they should reflect real activity from the platform. If you see the exact same numbers every time regardless of activity, report it.</div>
+    </div>
+
+    <!-- LISTINGS -->
+    <div class="section">
+      <div class="section-title">
+        <div class="section-number">3</div>
+        <div>
+          <h2>Listings</h2>
+          <div class="subtitle">Manage all business listings — approve, reject, or suspend</div>
+        </div>
+      </div>
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>#</th><th>What to do</th><th>What you should see</th></tr></thead>
+          <tbody>
+            <tr><td>3.1</td><td>Click "Listings" in the sidebar</td><td>A table of businesses appears with real business names</td></tr>
+            <tr><td>3.2</td><td>Type a business name in the search box</td><td>The table immediately filters to show only matching results</td></tr>
+            <tr><td>3.3</td><td>Clear the search box</td><td>All listings come back</td></tr>
+            <tr><td>3.4</td><td>If there are more than 10 listings, look for page buttons at the bottom</td><td>Page 1, 2, 3… buttons appear and clicking them loads the next set</td></tr>
+            <tr><td>3.5</td><td>Click "Moderation Queue" sub-tab</td><td>Only listings waiting for approval are shown here</td></tr>
+            <tr><td>3.6</td><td>Click "Approve" on a pending listing</td><td>The listing disappears from the queue (it has been approved)</td></tr>
+            <tr><td>3.7</td><td>Click "Reject" on another pending listing</td><td>The listing disappears from the queue (it has been rejected)</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- CREDITS -->
+    <div class="section">
+      <div class="section-title">
+        <div class="section-number">4</div>
+        <div>
+          <h2>Exchange Ledger (Credits)</h2>
+          <div class="subtitle">View and manage everyone's barter credit balances</div>
+        </div>
+      </div>
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>#</th><th>What to do</th><th>What you should see</th></tr></thead>
+          <tbody>
+            <tr><td>4.1</td><td>Click "Exchange Ledger" in the sidebar, then "Summary"</td><td>5 cards showing totals — all real numbers from the database</td></tr>
+            <tr><td>4.2</td><td>Look at the "Monthly Growth %" card</td><td>A calculated percentage (e.g. +8%) — not a fixed fake "+14%"</td></tr>
+            <tr><td>4.3</td><td>Click "Member Balances" sub-tab</td><td>A table of all members with their credit balance</td></tr>
+            <tr><td>4.4</td><td>Click on any member row</td><td>A detail panel opens on the right showing their full balance history</td></tr>
+            <tr><td>4.5</td><td>In the detail panel, type a number in the adjustment box and click Apply</td><td>The balance updates immediately and an entry appears in the adjustment log</td></tr>
+            <tr><td>4.6</td><td>Try applying an adjustment with an empty amount field</td><td>Nothing happens — no error, no change to the balance</td></tr>
+            <tr><td>4.7</td><td>Click "Aging &amp; Risk" sub-tab</td><td>Only users with negative balances are listed, sorted by how long they've been negative</td></tr>
+            <tr><td>4.8</td><td>Click "Write-offs" sub-tab</td><td>A history of written-off credits is shown</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- TAX -->
+    <div class="section">
+      <div class="section-title">
+        <div class="section-number">5</div>
+        <div>
+          <h2>Tax &amp; 1099</h2>
+          <div class="subtitle">Track W-9 forms, annual totals, and 1099 tax preparation</div>
+        </div>
+      </div>
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>#</th><th>What to do</th><th>What you should see</th></tr></thead>
+          <tbody>
+            <tr><td>5.1</td><td>Click "Tax &amp; 1099" → "W-9 Tracking"</td><td>A table of businesses showing who has submitted their W-9 form</td></tr>
+            <tr><td>5.2</td><td>Search by business name in W-9 Tracking</td><td>The table filters correctly</td></tr>
+            <tr><td>5.3</td><td>Click "Annual Totals" sub-tab</td><td>A table of merchants with their yearly barter income totals</td></tr>
+            <tr><td>5.4</td><td>Change the year using the year dropdown</td><td>The table reloads showing data for the selected year</td></tr>
+            <tr><td>5.5</td><td>Click "1099-B Prep" sub-tab</td><td>A list of merchants who have earned enough to require a 1099-B form</td></tr>
+            <tr><td>5.6</td><td>Click "Audit Trail" sub-tab</td><td>A log of all admin actions related to tax (e.g. "updated W-9 status")</td></tr>
+            <tr><td>5.7</td><td>Click "State Compliance" sub-tab</td><td>A table with search box and page numbers at the bottom</td></tr>
+            <tr><td>5.8</td><td>Click "Backup Withholding" sub-tab</td><td>A table with search box and page numbers at the bottom</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- USERS -->
+    <div class="section">
+      <div class="section-title">
+        <div class="section-number">6</div>
+        <div>
+          <h2>Users</h2>
+          <div class="subtitle">View all registered users and their account details</div>
+        </div>
+      </div>
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>#</th><th>What to do</th><th>What you should see</th></tr></thead>
+          <tbody>
+            <tr><td>6.1</td><td>Click "Users" in the sidebar</td><td>A table of all registered users with names and emails</td></tr>
+            <tr><td>6.2</td><td>Search by name or email</td><td>The table filters to matching users instantly</td></tr>
+            <tr><td>6.3</td><td>Look at the credit balance column</td><td>Each user shows their real available credits</td></tr>
+            <tr><td>6.4</td><td>Look at the W-9 column</td><td>Green checkmark for users who submitted W-9, red for those who haven't</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- ACTIVITY -->
+    <div class="section">
+      <div class="section-title">
+        <div class="section-number">7</div>
+        <div>
+          <h2>Activity</h2>
+          <div class="subtitle">Live feed of transactions, alerts, and disputes happening on the platform</div>
+        </div>
+      </div>
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>#</th><th>What to do</th><th>What you should see</th></tr></thead>
+          <tbody>
+            <tr><td>7.1</td><td>Click "Activity" in the sidebar</td><td>A feed of recent transactions loads</td></tr>
+            <tr><td>7.2</td><td>Look at the "Activity" label in the sidebar</td><td>If there are any system errors, a small red circle with a number appears next to "Activity" — this is a real count, not a fake one</td></tr>
+            <tr><td>7.3</td><td>Click "System Alerts" sub-tab</td><td>Alerts about POS connection failures or other issues are shown</td></tr>
+            <tr><td>7.4</td><td>Click "Disputes" sub-tab</td><td>Any transactions that have been marked as "disputed" appear here</td></tr>
+            <tr><td>7.5</td><td>Click "Suspicious Behavior" sub-tab</td><td>Users with unusually high transaction counts are flagged here</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- SYSTEM HEALTH -->
+    <div class="section">
+      <div class="section-title">
+        <div class="section-number">8</div>
+        <div>
+          <h2>System Health</h2>
+          <div class="subtitle">Operational dashboard — monitors POS connections, QR codes, and financial alerts</div>
+        </div>
+      </div>
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>#</th><th>What to do</th><th>What you should see</th></tr></thead>
+          <tbody>
+            <tr><td>8.1</td><td>Click "System Health" → "Dashboard"</td><td>8 health cards appear (POS Disconnected, OAuth Expiring, etc.)</td></tr>
+            <tr><td>8.2</td><td>Check the status banner at the top</td><td>Green = everything OK, yellow = warnings, red = critical issues</td></tr>
+            <tr><td>8.3</td><td>Click any health card (e.g. "QR Failures")</td><td>You are taken to the relevant sub-tab automatically</td></tr>
+            <tr><td>8.4</td><td>Click "POS &amp; OAuth" sub-tab</td><td>Two tables appear: disconnected POS systems and expiring tokens</td></tr>
+            <tr><td>8.5</td><td>Look for any POS system showing "Never synced"</td><td>It should say "Never synced" — not "999d"</td></tr>
+            <tr><td>8.6</td><td>Use the search boxes on the POS tables</td><td>Typing filters the table, clearing the box brings all rows back</td></tr>
+            <tr><td>8.7</td><td>Click "Sync &amp; QR" sub-tab</td><td>Two tables: sync errors (from product sync) and QR scan failures</td></tr>
+            <tr><td>8.8</td><td>Look at the QR Failures table</td><td>Each row shows a reason badge: "Expired", "Already Used", or "Not Found"</td></tr>
+            <tr><td>8.9</td><td>Click "Financial Alerts" sub-tab</td><td>Credit pool status, high dispute rate merchants, and large manual adjustments</td></tr>
+            <tr><td>8.10</td><td>Use search and pagination on each table in Financial Alerts</td><td>All three tables (imbalance, disputes, adjustments) filter and paginate correctly</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- CREDIT RISK -->
+    <div class="section">
+      <div class="section-title">
+        <div class="section-number">9</div>
+        <div>
+          <h2>Credit Risk</h2>
+          <div class="subtitle">Manage merchant credit lines, risk scores, and security deposits</div>
+        </div>
+      </div>
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>#</th><th>What to do</th><th>What you should see</th></tr></thead>
+          <tbody>
+            <tr><td>9.1</td><td>Click "Credit Risk" → "Overview"</td><td>A table of merchants with their credit line and risk score</td></tr>
+            <tr><td>9.2</td><td>Change a merchant's credit line number and click Save</td><td>A success indicator appears and the value stays when you reload</td></tr>
+            <tr><td>9.3</td><td>Change a merchant's risk score (dropdown) and save</td><td>The risk badge color updates (green = low, red = critical)</td></tr>
+            <tr><td>9.4</td><td>Check the "Personal Guarantee" checkbox and save</td><td>The checkbox stays checked after saving</td></tr>
+            <tr><td>9.5</td><td>Click "Risk Scorecard" sub-tab</td><td>Merchants are grouped into sections: Critical, High, Medium, Low</td></tr>
+            <tr><td>9.6</td><td>Click "Deposits &amp; Guarantees" sub-tab</td><td>Two tables: one for security deposits with coverage bars, one for guarantees</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- DISPUTES -->
+    <div class="section">
+      <div class="section-title">
+        <div class="section-number">10</div>
+        <div>
+          <h2>Disputes &amp; Mediation</h2>
+          <div class="subtitle">Track, manage, and resolve barter disputes between members</div>
+        </div>
+      </div>
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>#</th><th>What to do</th><th>What you should see</th></tr></thead>
+          <tbody>
+            <tr><td>10.1</td><td>Click "Disputes" in the sidebar</td><td>4 count cards: Open, Under Review, Resolved, Escalated</td></tr>
+            <tr><td>10.2</td><td>Look at the "Open Disputes" table</td><td>Each dispute shows the reporter, the reported party, the type, and the description</td></tr>
+            <tr><td>10.3</td><td>Open disputes should have a light red background row</td><td>Red-tinted rows for open, purple-tinted for escalated</td></tr>
+            <tr><td>10.4</td><td>Change the Status dropdown on a dispute row to "Under Review"</td><td>The dropdown shows the new value</td></tr>
+            <tr><td>10.5</td><td>Type a note in the "Admin Notes" box on the same row, then click Save</td><td>A loading spinner briefly appears, then the save succeeds</td></tr>
+            <tr><td>10.6</td><td>Reload the page and come back to that dispute</td><td>Your note is still there — it was saved to the database</td></tr>
+            <tr><td>10.7</td><td>Set the "Outcome" dropdown to "Reporter Wins" and save</td><td>The outcome saves correctly</td></tr>
+            <tr><td>10.8</td><td>Change the status to "Resolved" and save</td><td>The dispute gets a resolved timestamp automatically</td></tr>
+            <tr><td>10.9</td><td>Click "Evidence" sub-tab</td><td>Any uploaded evidence files are listed here with a "View" link</td></tr>
+            <tr><td>10.10</td><td>Click "Repeat Offenders" sub-tab</td><td>Users who have been reported in 2 or more disputes appear here</td></tr>
+            <tr><td>10.11</td><td>Click "View Disputes" for a repeat offender</td><td>You are taken back to the Open Disputes tab</td></tr>
+            <tr><td>10.12</td><td>Click the "Refresh" button at the top right</td><td>The data reloads — useful to check for new disputes without refreshing the whole page</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <div class="tip">To test this section fully, the developer needs to insert at least two or three sample dispute records into the database first.</div>
+    </div>
+
+    <!-- SUPPLY MAP -->
+    <div class="section">
+      <div class="section-title">
+        <div class="section-number">11</div>
+        <div>
+          <h2>Supply Map</h2>
+          <div class="subtitle">Visual breakdown of what categories and regions are well-supplied or underserved</div>
+        </div>
+      </div>
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>#</th><th>What to do</th><th>What you should see</th></tr></thead>
+          <tbody>
+            <tr><td>11.1</td><td>Click "Supply Map" in the sidebar</td><td>4 summary cards appear: Total Listings, Categories, Underrepresented, Avg Ticket</td></tr>
+            <tr><td>11.2</td><td>Look for the "Underrepresented Categories" yellow banner</td><td>Any category with fewer than 3 listings appears as a chip/tag in the banner</td></tr>
+            <tr><td>11.3</td><td>Look at the saturation bar for each category</td><td>Green = not saturated, yellow = getting full, red = oversaturated</td></tr>
+            <tr><td>11.4</td><td>Check the "Avg Ticket Size" column</td><td>A dollar amount calculated from real POS transactions — shows "—" if no transactions</td></tr>
+            <tr><td>11.5</td><td>Scroll down to the Category Distribution chart</td><td>A bar chart showing the top 10 categories by listing count</td></tr>
+            <tr><td>11.6</td><td>Search for a category name</td><td>The table filters instantly, page resets to 1</td></tr>
+            <tr><td>11.7</td><td>Click "Regional" sub-tab</td><td>Listings are broken down by city or region</td></tr>
+            <tr><td>11.8</td><td>Search for a region name</td><td>The table filters correctly</td></tr>
+            <tr><td>11.9</td><td>Click "Top Earners &amp; Spenders" sub-tab</td><td>Two side-by-side tables appear: Top Earners on the left, Top Spenders on the right</td></tr>
+            <tr><td>11.10</td><td>Look at the bar next to each earner/spender's points total</td><td>The longest bar belongs to the user with the most points — shorter bars are proportional</td></tr>
+            <tr><td>11.11</td><td>Search by business name in either table</td><td>Both tables filter independently</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- GROWTH, REFERRALS, LIQUIDITY, TX MONITOR -->
+    <div class="section">
+      <div class="section-title">
+        <div class="section-number">12</div>
+        <div>
+          <h2>Growth, Referrals, Liquidity &amp; TX Monitor</h2>
+          <div class="subtitle">Additional analytics and monitoring sections</div>
+        </div>
+      </div>
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>#</th><th>What to do</th><th>What you should see</th></tr></thead>
+          <tbody>
+            <tr><td>12.1</td><td>Click "Growth &amp; Funnel" → "Funnel"</td><td>A step-by-step funnel showing signups → onboarding → active users</td></tr>
+            <tr><td>12.2</td><td>Click "Monthly Active" sub-tab</td><td>A chart showing how many users were active each month</td></tr>
+            <tr><td>12.3</td><td>Click "Referrals" → "Overview"</td><td>Summary stats for the referral program</td></tr>
+            <tr><td>12.4</td><td>Click "Referrers" sub-tab</td><td>A list of users who have referred others, with their referral counts</td></tr>
+            <tr><td>12.5</td><td>Click "Liquidity" → "Overview"</td><td>Shows the total positive credit pool vs negative exposure</td></tr>
+            <tr><td>12.6</td><td>Click "Dormant Credits" sub-tab</td><td>Users with credits but no recent activity</td></tr>
+            <tr><td>12.7</td><td>Click "TX Monitor" → "All Transactions"</td><td>A combined list of all POS and barter transactions</td></tr>
+            <tr><td>12.8</td><td>Click "Flags &amp; Fraud" sub-tab</td><td>Any flagged or suspicious transactions appear here</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- GENERAL BEHAVIOUR -->
+    <div class="section">
+      <div class="section-title">
+        <div class="section-number">13</div>
+        <div>
+          <h2>General Behaviour — Test on Every Section</h2>
+          <div class="subtitle">These checks apply everywhere across the admin panel</div>
+        </div>
+      </div>
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>#</th><th>What to check</th><th>What you should see</th></tr></thead>
+          <tbody>
+            <tr><td>13.1</td><td>While a section is loading data</td><td>A spinning circle (loading spinner) is visible — no blank white area</td></tr>
+            <tr><td>13.2</td><td>When a table has no data</td><td>A friendly message like "No results found" — not a broken or empty screen</td></tr>
+            <tr><td>13.3</td><td>When you type in a search box</td><td>Results filter immediately as you type — no need to press Enter</td></tr>
+            <tr><td>13.4</td><td>When you clear a search box</td><td>All rows return — nothing stays filtered</td></tr>
+            <tr><td>13.5</td><td>When a table has more than 10 rows</td><td>Page 1, 2, 3… buttons appear at the bottom of the table</td></tr>
+            <tr><td>13.6</td><td>When you navigate to the last page of a table</td><td>Only the remaining rows show (e.g. if 23 rows, page 3 shows 3 rows)</td></tr>
+            <tr><td>13.7</td><td>When you save something (credit adjustment, dispute update, etc.)</td><td>A loading indicator briefly shows, then disappears when done — no crash</td></tr>
+            <tr><td>13.8</td><td>After saving, reload the page and come back to that section</td><td>Your changes are still there — they were saved to the database</td></tr>
+            <tr><td>13.9</td><td>View the admin panel on a small screen or tablet</td><td>The sidebar and content are still usable — nothing is cut off or broken</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- KNOWN GAPS -->
+    <div class="section">
+      <div class="section-title">
+        <div class="section-number">14</div>
+        <div>
+          <h2>Known Limitations</h2>
+          <div class="subtitle">These are existing gaps — not bugs, but features not yet fully built</div>
+        </div>
+      </div>
+      <div class="table-wrap">
+        <ul class="gap-list">
+          <li><strong>Evidence file upload is not in the admin panel yet.</strong> The Disputes section can display evidence files, but there is no button to upload files from within the admin. Files must be added directly by the developer for now.</li>
+          <li><strong>Data does not update live.</strong> The admin panel does not automatically refresh when new data arrives. You need to reload the page or click a "Refresh" button to see new information.</li>
+          <li><strong>Some sync errors may not be captured.</strong> If a product sync crashes mid-process unexpectedly, the error might only appear in a developer log and not in the System Health section.</li>
+          <li><strong>Security PIN is stored as plain text.</strong> The merchant POS security PIN is currently stored without encryption. This is a known security debt to be fixed in a future update.</li>
+        </ul>
+      </div>
+    </div>
+
+    <!-- HOW TO REPORT -->
+    <div class="section">
+      <div class="section-title">
+        <div class="section-number">15</div>
+        <div>
+          <h2>How to Report a Problem</h2>
+          <div class="subtitle">If something doesn't work as expected</div>
+        </div>
+      </div>
+      <ul class="steps">
+        <li>
+          <div class="step-num">1</div>
+          <div class="step-text"><strong>Note the test number.</strong> For example: "Test 10.6 failed — the admin note was not saved after reloading."</div>
+        </li>
+        <li>
+          <div class="step-num">2</div>
+          <div class="step-text"><strong>Take a screenshot.</strong> A screenshot of what you see on screen is very helpful for the developer.</div>
+        </li>
+        <li>
+          <div class="step-num">3</div>
+          <div class="step-text"><strong>Describe what you did.</strong> Write down the exact steps you took before the problem appeared.</div>
+        </li>
+        <li>
+          <div class="step-num">4</div>
+          <div class="step-text"><strong>Describe what you saw vs. what you expected.</strong> For example: "I expected the note to appear after reloading but the field was empty."</div>
+        </li>
+      </ul>
+    </div>
+
+  </div><!-- end .content -->
+
+  <div class="footer">
+    <span>SwapShop Admin Panel — Test Guide</span>
+    <span>For internal use only · March 2026</span>
+  </div>
+
+</div>
+</body>
+</html>
