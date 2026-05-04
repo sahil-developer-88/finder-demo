@@ -5,9 +5,9 @@ import { Search, ArrowUpRight, ArrowDownRight, ChevronRight } from 'lucide-react
 
 // ─── StatCard ─────────────────────────────────────────────────────────────────
 export const StatCard = ({
-  icon: Icon, label, value, sub, color = 'emerald', trend,
+  icon: Icon, label, value, sub, color = 'emerald', trend, onClick,
 }: {
-  icon: any; label: string; value: string | number; sub?: string; color?: string; trend?: number;
+  icon: any; label: string; value: string | number; sub?: string; color?: string; trend?: number; onClick?: () => void;
 }) => {
   const colors: Record<string, string> = {
     emerald: 'text-emerald-500 bg-emerald-50',
@@ -21,7 +21,10 @@ export const StatCard = ({
   };
   const cls = colors[color] || colors.emerald;
   return (
-    <Card className="border-0 shadow-sm">
+    <Card
+      className={`border-0 shadow-sm transition-shadow ${onClick ? 'cursor-pointer hover:shadow-md hover:ring-1 hover:ring-gray-200' : ''}`}
+      onClick={onClick}
+    >
       <CardContent className="p-5">
         <div className="flex items-start justify-between">
           <div className={`p-2.5 rounded-xl ${cls}`}>

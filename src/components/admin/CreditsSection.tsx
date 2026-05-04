@@ -768,6 +768,7 @@ const CreditsSection = ({ sub, setSub, memberCredits: realCredits, memberCredits
                     <option value="dispute">Dispute Resolution</option>
                     <option value="trade_credit_grant">Trade Credit Grant</option>
                     <option value="trade_credit_revoke">Trade Credit Revoke</option>
+                    <option value="write_off">Write-off</option>
                     <option value="other">Other</option>
                   </select>
                 </div>
@@ -1007,6 +1008,7 @@ const CreditsSection = ({ sub, setSub, memberCredits: realCredits, memberCredits
                       <option value="promo">Promotion</option>
                       <option value="correction">Billing Correction</option>
                       <option value="trade_credit_grant">Trade Credit Grant</option>
+                      <option value="write_off">Write-off</option>
                       <option value="other">Other</option>
                     </select>
                   </div>

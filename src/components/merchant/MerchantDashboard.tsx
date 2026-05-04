@@ -65,7 +65,7 @@ const NAV_ITEMS = [
     id: 'requests',
     icon: CreditCard,
     label: 'Payment Requests',
-    subs: ['Analytics', 'Daily Summary', 'Integrations', 'Transactions', 'Trade: Send / Request'],
+    subs: ['Analytics', 'Daily Summary', 'Integrations', 'Transactions'],
   },
   {
     id: 'disputes',
@@ -1223,18 +1223,6 @@ const MerchantDashboard = ({ embedded = false, externalSub }: { embedded?: boole
                 })()}
               </CardContent>
             </Card>
-          </div>
-        )}
-
-        {/* ── TRADE: SEND / REQUEST ───────────────────────────────────────────── */}
-        {requestSub === 'Trade: Send / Request' && (
-          <div className="space-y-6">
-            <SectionTitle title="Trade: Send / Request" sub="Create and manage barter payment requests" />
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-              <CreatePaymentRequest mode="request" onSuccess={() => setRequestListKey(k => k + 1)} />
-              <CreatePaymentRequest mode="send" onSuccess={() => setRequestListKey(k => k + 1)} />
-            </div>
-            <PaymentRequestList key={requestListKey} />
           </div>
         )}
 

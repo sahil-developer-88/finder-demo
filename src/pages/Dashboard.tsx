@@ -7,7 +7,7 @@ import {
   Star, Eye, Heart, Gift, QrCode, Package, CreditCard,
   LayoutDashboard, Scan, ClipboardList, Briefcase, Loader2,
   ChevronRight, ChevronDown, PanelLeft, X, RefreshCw, Store, Zap, Filter,
-  Wallet, ArrowDownLeft, ArrowUpRight, TrendingUp, Compass, Search, Ban, BookOpen, Clock, Bell,
+  Wallet, ArrowDownLeft, ArrowUpRight, TrendingUp, Compass, Search, Ban, BookOpen, Clock, Bell, ArrowLeftRight,
 } from "lucide-react";
 import BusinessCard from '@/components/BusinessCard';
 const DISCOVER_CATEGORIES = [
@@ -40,6 +40,7 @@ import InboxSection from '@/components/messaging/InboxSection';
 import MerchantSupportTab from '@/components/merchant/MerchantSupportTab';
 import TradeRequestsPage from './TradeRequestsPage';
 import MerchantDashboard from '@/components/merchant/MerchantDashboard';
+import CreatePaymentRequest from '@/components/payment-requests/CreatePaymentRequest';
 import { useAuth } from '@/hooks/useAuth';
 import { useProducts } from '@/hooks/useProducts';
 import { supabase } from '@/integrations/supabase/client';
@@ -56,8 +57,8 @@ const NAV_ITEMS = [
   { id: 'favorites',        icon: Heart,           label: 'Favorites',        subs: [] },
   { id: 'inbox',            icon: MessageSquare,   label: 'Inbox',            subs: [] },
   { id: 'wallet',           icon: Wallet,          label: 'Wallet',           subs: [] },
-  { id: 'payment-requests', icon: CreditCard,      label: 'Payment Requests', subs: ['Analytics', 'Daily Summary', 'Integrations', 'Transactions', 'Trade: Send / Request'] },
-  { id: 'trade-requests',  icon: Coins,           label: 'Trade Requests',   subs: [] },
+  { id: 'payment-requests',    icon: CreditCard,      label: 'Payment Requests',     subs: ['Analytics', 'Daily Summary', 'Integrations', 'Transactions'] },
+  { id: 'trade-send-request', icon: ArrowLeftRight,  label: 'Trade: Send / Request', subs: ['Send Barter', 'Request Barter', 'Trade Requests'] },
   { id: 'orders',           icon: Package,         label: 'Orders',           subs: [] },
   { id: 'reviews',          icon: Star,            label: 'Reviews',          subs: [] },
   { id: 'referrals',        icon: Gift,            label: 'Referrals',        subs: [] },
@@ -564,9 +565,10 @@ const myListings = [
 ];
 
 // ─── Main Component ───────────────────────────────────────────────────────────
-const VALID_TABS = ['overview', 'listings', 'discover', 'favorites', 'inbox', 'wallet', 'payment-requests', 'trade-requests', 'orders', 'reviews', 'referrals', 'ledger', 'support', 'profile'];
+const VALID_TABS = ['overview', 'listings', 'discover', 'favorites', 'inbox', 'wallet', 'payment-requests', 'trade-send-request', 'orders', 'reviews', 'referrals', 'ledger', 'support', 'profile'];
 const VALID_SUBS = ['Account', 'My Business', 'Barter QR', 'Tax', 'Integrations'];
-const VALID_PAYMENT_SUBS = ['Analytics', 'Daily Summary', 'Integrations', 'Transactions', 'Trade: Send / Request'];
+const VALID_PAYMENT_SUBS = ['Analytics', 'Daily Summary', 'Integrations', 'Transactions'];
+const VALID_TRADE_SUBS = ['Send Barter', 'Request Barter', 'Trade Requests'];
 
 const Dashboard = () => {
   const { notificationsEnabled, enableNotifications } = usePushNotifications();
@@ -612,16 +614,23 @@ const Dashboard = () => {
     return () => window.removeEventListener('fcm:navigate-inbox', handler);
   }, [setSearchParams]);
 
+  // Keep last visited dashboard URL in sessionStorage so admin Back button can return here
+  useEffect(() => {
+    sessionStorage.setItem('lastDashboardUrl', window.location.pathname + window.location.search);
+  }, [searchParams]);
+
 
   const activeSection = VALID_TABS.includes(searchParams.get('tab') ?? '') ? searchParams.get('tab')! : 'overview';
   const profileSub = VALID_SUBS.includes(searchParams.get('sub') ?? '') ? searchParams.get('sub')! : 'Account';
   const paymentSub = VALID_PAYMENT_SUBS.includes(searchParams.get('psub') ?? '') ? searchParams.get('psub')! : 'Analytics';
+  const tradeSub = VALID_TRADE_SUBS.includes(searchParams.get('tsub') ?? '') ? searchParams.get('tsub')! : '';
 
   const setActiveSection = (section: string) => {
     setSearchParams(prev => {
       const next = new URLSearchParams(prev);
       next.set('tab', section);
       if (section !== 'profile') next.delete('sub');
+      if (section !== 'trade-send-request') next.delete('tsub');
       return next;
     });
   };
@@ -640,6 +649,15 @@ const Dashboard = () => {
       const next = new URLSearchParams(prev);
       next.set('tab', 'payment-requests');
       next.set('psub', sub);
+      return next;
+    });
+  };
+
+  const setTradeSub = (sub: string) => {
+    setSearchParams(prev => {
+      const next = new URLSearchParams(prev);
+      next.set('tab', 'trade-send-request');
+      next.set('tsub', sub);
       return next;
     });
   };
@@ -781,7 +799,17 @@ const Dashboard = () => {
       .on(
         'postgres_changes',
         { event: 'INSERT', schema: 'public', table: 'transactions' },
-        async () => {
+        async (payload: any) => {
+          const tx = payload.new;
+          if (tx?.from_user_id === user.id || tx?.to_user_id === user.id) {
+            supabase.from('user_credits')
+              .select('available_credits')
+              .eq('user_id', user.id)
+              .maybeSingle()
+              .then(({ data }) => {
+                if (data?.available_credits !== undefined) setBarterPoints(data.available_credits);
+              });
+          }
           const { data: txns } = await supabase
             .from('transactions')
             .select('id, service_description, points_amount, created_at, from_user_id, to_user_id, status')
@@ -900,7 +928,8 @@ const Dashboard = () => {
                 <button
                   onClick={() => {
                     if (redirect) { navigate(redirect); return; }
-                    setActiveSection(id);
+                    if (id === 'trade-send-request') { setTradeSub('Send Barter'); }
+                    else setActiveSection(id);
                     if (!hasSubs) setSidebarOpen(false);
                     // Always expand when clicking a tab with sub-items
                     if (hasSubs) {
@@ -946,13 +975,14 @@ const Dashboard = () => {
                 {hasSubs && expandedSections.has(id) && (
                   <div className="mt-0.5 ml-3 pl-3 border-l border-white/10 space-y-0.5">
                     {subs.map(sub => {
-                      const activeSub = id === 'profile' ? profileSub : paymentSub;
+                      const activeSub = id === 'profile' ? profileSub : id === 'trade-send-request' ? tradeSub : paymentSub;
                       const isActive = activeSub === sub && activeSection === id;
                       return (
                         <button
                           key={sub}
                           onClick={() => {
                             if (id === 'profile') setProfileSub(sub);
+                            else if (id === 'trade-send-request') setTradeSub(sub);
                             else setPaymentSub(sub);
                             setSidebarOpen(false);
                           }}
@@ -1511,11 +1541,6 @@ const Dashboard = () => {
 
 
 
-        {/* ── TRADE REQUESTS ───────────────────────────────────────────────── */}
-        {activeSection === 'trade-requests' && (
-          <TradeRequestsPage embedded />
-        )}
-
         {/* ── ORDERS ───────────────────────────────────────────────────────── */}
         {activeSection === 'orders' && (
           <div className="space-y-6">
@@ -1548,6 +1573,30 @@ const Dashboard = () => {
         {/* ── SUPPORT ──────────────────────────────────────────────────────── */}
         {activeSection === 'support' && (
           <MerchantSupportTab />
+        )}
+
+        {/* ── TRADE: SEND / REQUEST ────────────────────────────────────────── */}
+        {activeSection === 'trade-send-request' && (
+          <div className="space-y-6">
+            {tradeSub !== 'Trade Requests' && (
+              <div>
+                <h2 className="text-xl font-bold text-gray-900">Trade: Send / Request</h2>
+                <p className="text-sm text-gray-500 mt-0.5">Send barter credits or request payment for services</p>
+              </div>
+            )}
+            {(!tradeSub || tradeSub === 'Send Barter') && (
+              <div className={tradeSub === 'Send Barter' ? '' : 'grid grid-cols-1 md:grid-cols-2 gap-6'}>
+                <CreatePaymentRequest mode="send" />
+                {!tradeSub && <CreatePaymentRequest mode="request" />}
+              </div>
+            )}
+            {tradeSub === 'Request Barter' && (
+              <CreatePaymentRequest mode="request" />
+            )}
+            {tradeSub === 'Trade Requests' && (
+              <TradeRequestsPage embedded />
+            )}
+          </div>
         )}
 
         {/* ── PAYMENT REQUESTS ─────────────────────────────────────────────── */}

@@ -643,6 +643,7 @@ serve(async (req) => {
     const userId = oauthState.user_id;
     const lightspeedMode = oauthState.metadata?.lightspeed_mode;
     const mobileRedirectUri = oauthState.metadata?.mobile_redirect_uri;
+    const callbackRedirect = oauthState.metadata?.callback_redirect; // admin-set redirect
 
     // For Lightspeed eCom, use the ecwid token exchange
     const exchangeProvider = (provider === 'lightspeed' && lightspeedMode === 'ecom')
@@ -896,8 +897,13 @@ serve(async (req) => {
         redirectUrl += '&warning=online_payments_disabled';
       }
       console.log(`📱 Redirecting to mobile deep link: ${redirectUrl}`);
+    } else if (callbackRedirect) {
+      // Admin flow: redirect back to the admin panel page
+      const separator = callbackRedirect.includes('?') ? '&' : '?';
+      redirectUrl = `${frontendUrl}${callbackRedirect}${separator}oauth_success=true&provider=${provider}`;
+      console.log(`🔧 Admin flow: redirecting to ${redirectUrl}`);
     } else {
-      // Web app: redirect to merchant dashboard
+      // Merchant flow: redirect to merchant dashboard
       redirectUrl = `${frontendUrl}/merchant/dashboard?oauth_success=true&provider=${provider}`;
       if (provider.toLowerCase() === 'square' && !config.can_accept_online_payments) {
         redirectUrl += '&warning=online_payments_disabled';

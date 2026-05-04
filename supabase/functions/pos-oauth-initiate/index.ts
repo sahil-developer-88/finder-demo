@@ -144,7 +144,7 @@ serve(async (req) => {
       throw new Error('Unauthorized');
     }
 
-    const { provider, shopName, lightspeedMode, platform } = await req.json();
+    const { provider, shopName, lightspeedMode, platform, targetUserId, callbackRedirect } = await req.json();
 
     if (!provider) {
       throw new Error('Provider is required');
@@ -174,11 +174,17 @@ serve(async (req) => {
     if (platform === 'mobile') {
       metadata.mobile_redirect_uri = 'swapshop://oauth-callback';
     }
+    if (callbackRedirect) {
+      metadata.callback_redirect = callbackRedirect;
+    }
+
+    // Admin connecting on behalf of a merchant → save under merchant's user_id
+    const integrationUserId = targetUserId || user.id;
 
     const { error: stateError } = await supabase
       .from('oauth_states')
       .insert({
-        user_id: user.id,
+        user_id: integrationUserId,
         state_token: stateToken,
         provider: provider.toLowerCase(), // always store as 'lightspeed', mode is in metadata
         metadata: metadata,

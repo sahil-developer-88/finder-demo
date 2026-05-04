@@ -16,7 +16,7 @@ import ActivitySection from '@/components/admin/ActivitySection';
 import TaxSection from '@/components/admin/TaxSection';
 import CreditsSection from '@/components/admin/CreditsSection';
 import ListingsSection from '@/components/admin/ListingsSection';
-import BackButton from '@/components/ui/BackButton';
+import AdsSection from '@/components/admin/AdsSection';
 import { generateFilledW9Pdf, downloadFilledW9Pdf } from '@/utils/w9PdfGenerator';
 import { download1099BPdf } from '@/utils/form1099BGenerator';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -31,7 +31,7 @@ import {
   LayoutDashboard, Store, CreditCard, Receipt, Users, Activity,
   Shield, CheckCircle, XCircle, AlertTriangle, Loader2, Search,
   TrendingUp, DollarSign, FileText, Flag, Clock, Download, Upload, Eye,
-  Edit2, Trash2, Pause, ArrowUpRight, ArrowDownRight, ArrowDownLeft, AlertCircle,
+  Edit2, Trash2, Pause, ArrowUpRight, ArrowDownRight, ArrowDownLeft, ArrowLeft, AlertCircle,
   Ban, Zap, Bell, RefreshCw, Settings, Filter, MessageSquare,
   Package, ChevronRight, ChevronDown, BarChart2, User, Star, StickyNote, Gift, Award, Scale, Plug,
   BookOpen, Coins,
@@ -39,6 +39,7 @@ import {
 import { useHasRole } from '@/hooks/useHasRole';
 import { useAuth } from '@/hooks/useAuth';
 import { supabase } from '@/integrations/supabase/client';
+import { useToast } from '@/hooks/use-toast';
 import MerchantSearchCombobox from '@/components/payment-requests/MerchantSearchCombobox';
 import InboxSection from '@/components/messaging/InboxSection';
 
@@ -123,6 +124,7 @@ const NAV_ITEMS = [
     'Top Earners & Spenders',
   ]},
   { id: 'support', icon: MessageSquare, label: 'Support Inbox', subs: [] },
+  { id: 'ads', icon: Bell, label: 'Ads & Banners', subs: ['Banners', 'Push Messages'] },
 ];
 
 const SUB_TABS: Record<string, string[]> = {
@@ -138,6 +140,7 @@ const SUB_TABS: Record<string, string[]> = {
   syshealth:  ['Dashboard', 'POS & OAuth', 'Sync & QR', 'Financial Alerts'],
   disputes:   ['Open Disputes', 'Evidence', 'Repeat Offenders'],
   supplymap:  ['Categories', 'Regional', 'Top Earners & Spenders'],
+  ads:        ['Banners', 'Push Messages'],
 };
 
 
@@ -145,7 +148,28 @@ const AdminPanel = () => {
   const { user } = useAuth();
   const { hasRole: isAdmin, loading, error } = useHasRole('admin');
   const navigate = useNavigate();
-  const [searchParams] = useSearchParams();
+  const [searchParams, setSearchParams] = useSearchParams();
+  const { toast } = useToast();
+
+  // Handle OAuth callback redirect from POS connection (admin flow)
+  useEffect(() => {
+    const oauthSuccess = searchParams.get('oauth_success');
+    const provider = searchParams.get('provider');
+    if (oauthSuccess === 'true') {
+      toast({
+        title: 'POS Connected!',
+        description: `${provider ? provider.charAt(0).toUpperCase() + provider.slice(1) : 'POS'} has been connected for this merchant.`,
+      });
+      // Clean up URL params without losing section/sub
+      setSearchParams(prev => {
+        const next = new URLSearchParams(prev);
+        next.delete('oauth_success');
+        next.delete('provider');
+        next.delete('warning');
+        return next;
+      }, { replace: true });
+    }
+  }, []);
 
   const DEFAULT_SUBS: Record<string, string> = {
     listings:   'Listings Overview',
@@ -160,6 +184,7 @@ const AdminPanel = () => {
     syshealth:  'Dashboard',
     disputes:   'Open Disputes',
     supplymap:  'Categories',
+    ads:        'Banners',
   };
 
   const [activeSection, setActiveSectionState] = useState(
@@ -175,9 +200,12 @@ const AdminPanel = () => {
     new Set([searchParams.get('section') || 'overview'])
   );
   const [adminSidebarOpen, setAdminSidebarOpen] = useState(false);
+  const [adminBackStack, setAdminBackStack] = useState<{ section: string; sub: string }[]>([]);
 
-  // Keep URL in sync when section/sub changes
+  // Keep URL in sync — always replace so browser history stays clean.
   const setActiveSection = (section: string) => {
+    // Push current position onto internal back stack before moving away
+    setAdminBackStack(prev => [...prev, { section: activeSection, sub: subSections[activeSection] ?? '' }]);
     setActiveSectionState(section);
     const sub = subSections[section];
     const params = new URLSearchParams();
@@ -193,6 +221,22 @@ const AdminPanel = () => {
       params.set('section', section);
       params.set('sub', sub);
       navigate(`/admin?${params.toString()}`, { replace: true });
+    }
+  };
+
+  const handleAdminBack = () => {
+    if (adminBackStack.length > 0) {
+      const prev = adminBackStack[adminBackStack.length - 1];
+      setAdminBackStack(stack => stack.slice(0, -1));
+      setActiveSectionState(prev.section);
+      if (prev.sub) setSubSections(s => ({ ...s, [prev.section]: prev.sub }));
+      setExpandedSections(s => new Set([...s, prev.section]));
+      const params = new URLSearchParams();
+      params.set('section', prev.section);
+      if (prev.sub) params.set('sub', prev.sub);
+      navigate(`/admin?${params.toString()}`, { replace: true });
+    } else {
+      navigate('/account-dashboard');
     }
   };
 
@@ -2073,7 +2117,13 @@ const AdminPanel = () => {
             <button className="md:hidden p-1.5 rounded-lg hover:bg-gray-100 mr-1" onClick={() => setAdminSidebarOpen(true)}>
               <svg className="h-5 w-5 text-gray-600" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" /></svg>
             </button>
-            <BackButton />
+            <button
+              onClick={handleAdminBack}
+              className="inline-flex items-center gap-1.5 text-sm font-medium text-gray-500 hover:text-gray-900 transition-colors group"
+            >
+              <ArrowLeft className="w-4 h-4 transition-transform group-hover:-translate-x-0.5" />
+              Back
+            </button>
             <span className="text-gray-300">|</span>
             <Shield className="h-4 w-4 text-emerald-500" />
             <ChevronRight className="h-3 w-3" />
@@ -2241,6 +2291,10 @@ const AdminPanel = () => {
               </div>
               <InboxSection variant="embedded" />
             </div>
+          )}
+
+          {activeSection === 'ads' && (
+            <AdsSection activeSubTab={subSections['ads'] ?? 'Banners'} />
           )}
         </main>
       </div>

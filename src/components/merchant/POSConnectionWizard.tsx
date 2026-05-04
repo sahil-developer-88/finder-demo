@@ -15,6 +15,8 @@ interface POSConnectionWizardProps {
   onOpenChange: (open: boolean) => void;
   onSuccess?: () => void;
   onBeforeOAuth?: () => Promise<void>;
+  targetUserId?: string;    // admin: connect on behalf of this merchant
+  callbackRedirect?: string; // admin: redirect here after OAuth (e.g. /admin?section=listings&sub=Listing+Details)
 }
 
 type POSProvider = 'square' | 'shopify' | 'adyen' | 'clover' | 'toast' | 'lightspeed';
@@ -33,7 +35,7 @@ interface ConnectionConfig {
  * POS Connection Wizard - Guides merchants through connecting their POS system
  * Supports OAuth flows and API key authentication
  */
-export function POSConnectionWizard({ open, onOpenChange, onSuccess, onBeforeOAuth }: POSConnectionWizardProps) {
+export function POSConnectionWizard({ open, onOpenChange, onSuccess, onBeforeOAuth, targetUserId, callbackRedirect }: POSConnectionWizardProps) {
   const { toast } = useToast();
   const [step, setStep] = useState<'provider' | 'credentials' | 'webhook' | 'testing' | 'complete'>('provider');
   const [loading, setLoading] = useState(false);
@@ -170,7 +172,9 @@ export function POSConnectionWizard({ open, onOpenChange, onSuccess, onBeforeOAu
           provider: config.provider,
           shopName: config.provider === 'shopify' ? shopName :
                    (config.provider === 'lightspeed' && lightspeedMode === 'xseries') ? storeName : undefined,
-          lightspeedMode: config.provider === 'lightspeed' ? lightspeedMode : undefined
+          lightspeedMode: config.provider === 'lightspeed' ? lightspeedMode : undefined,
+          targetUserId:    targetUserId    || undefined,
+          callbackRedirect: callbackRedirect || undefined,
         }
       });
 

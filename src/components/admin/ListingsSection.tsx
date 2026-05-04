@@ -28,6 +28,8 @@ const ListingsSection = ({
   const [editSaving, setEditSaving] = useState(false);
   const [adminCtrlPage, setAdminCtrlPage] = useState(1);
   const LISTINGS_PAGE_SIZE = 10;
+  const [ctrlSearch, setCtrlSearch]           = useState('');
+  const [ctrlStatus, setCtrlStatus]           = useState('all');
   const [modSearch, setModSearch] = useState('');
   const [modSort,   setModSort]   = useState<{ col: string; dir: 'asc' | 'desc' }>({ col: 'created_at', dir: 'desc' });
 
@@ -177,6 +179,7 @@ const ListingsSection = ({
                         <div className="flex items-center justify-end gap-1">
                           <button onClick={() => onAction(l.id, 'approve')} className="p-1.5 rounded hover:bg-emerald-50 text-gray-400 hover:text-emerald-600" title="Approve"><CheckCircle className="h-3.5 w-3.5" /></button>
                           <button onClick={() => onAction(l.id, 'reject')}  className="p-1.5 rounded hover:bg-red-50 text-gray-400 hover:text-red-600"     title="Reject"><XCircle className="h-3.5 w-3.5" /></button>
+                          <button onClick={() => onAction(l.id, 'suspend')} className="p-1.5 rounded hover:bg-amber-50 text-gray-400 hover:text-amber-600"  title="Suspend"><Pause className="h-3.5 w-3.5" /></button>
                           <button onClick={() => onAction(l.id, 'remove')}  className="p-1.5 rounded hover:bg-gray-100 text-gray-400 hover:text-red-600"    title="Remove"><Trash2 className="h-3.5 w-3.5" /></button>
                         </div>
                       </td>
@@ -479,17 +482,76 @@ const ListingsSection = ({
       {sub === 'Admin Controls' && (
         <div className="space-y-5">
           <Card className="border-0 shadow-sm">
-            <CardHeader className="pb-3"><CardTitle className="text-base">Listing Controls ({listings.length})</CardTitle></CardHeader>
+            <CardHeader className="pb-3">
+              <div className="flex flex-col gap-3">
+                <div className="flex items-center justify-between flex-wrap gap-2">
+                  <CardTitle className="text-base">Listing Controls ({listings.length})</CardTitle>
+                  <div className="relative">
+                    <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-gray-400" />
+                    <input
+                      className="pl-8 pr-4 py-1.5 text-sm border rounded-lg focus:outline-none focus:ring-1 focus:ring-emerald-400 w-56"
+                      placeholder="Search business, category…"
+                      value={ctrlSearch}
+                      onChange={e => { setCtrlSearch(e.target.value); setAdminCtrlPage(1); }}
+                    />
+                  </div>
+                </div>
+                <div className="flex gap-1.5 flex-wrap">
+                  {[
+                    { value: 'all',       label: 'All'       },
+                    { value: 'active',    label: 'Approved'  },
+                    { value: 'rejected',  label: 'Rejected'  },
+                    { value: 'suspended', label: 'Suspended' },
+                    { value: 'removed',   label: 'Removed'   },
+                  ].map(f => (
+                    <button
+                      key={f.value}
+                      onClick={() => { setCtrlStatus(f.value); setAdminCtrlPage(1); }}
+                      className={`px-3 py-1 text-xs font-medium rounded-full border transition-all ${
+                        ctrlStatus === f.value
+                          ? f.value === 'all'       ? 'bg-gray-800 text-white border-gray-800'
+                          : f.value === 'active'    ? 'bg-emerald-600 text-white border-emerald-600'
+                          : f.value === 'rejected'  ? 'bg-red-500 text-white border-red-500'
+                          : f.value === 'suspended' ? 'bg-amber-500 text-white border-amber-500'
+                          :                           'bg-gray-500 text-white border-gray-500'
+                          : 'bg-white text-gray-500 border-gray-200 hover:border-gray-400'
+                      }`}
+                    >
+                      {f.label}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            </CardHeader>
             <CardContent className="p-0">
+              {(() => {
+                const ctrlFiltered = listings.filter(l => {
+                  const matchSearch = !ctrlSearch ||
+                    l.business_name?.toLowerCase().includes(ctrlSearch.toLowerCase()) ||
+                    l.category?.toLowerCase().includes(ctrlSearch.toLowerCase()) ||
+                    l.owner?.toLowerCase().includes(ctrlSearch.toLowerCase());
+                  const matchStatus = ctrlStatus === 'all' || l.status === ctrlStatus;
+                  return matchSearch && matchStatus;
+                });
+                const ctrlPages = Math.max(1, Math.ceil(ctrlFiltered.length / LISTINGS_PAGE_SIZE));
+                const ctrlPage  = Math.min(adminCtrlPage, ctrlPages);
+                const ctrlRows  = ctrlFiltered.slice((ctrlPage - 1) * LISTINGS_PAGE_SIZE, ctrlPage * LISTINGS_PAGE_SIZE);
+                const ctrlFrom  = ctrlFiltered.length === 0 ? 0 : (ctrlPage - 1) * LISTINGS_PAGE_SIZE + 1;
+                const ctrlTo    = Math.min(ctrlPage * LISTINGS_PAGE_SIZE, ctrlFiltered.length);
+                const visible   = Array.from({ length: ctrlPages }, (_, i) => i + 1).filter(p =>
+                  p === 1 || p === ctrlPages || Math.abs(p - ctrlPage) <= 1
+                );
+                return (
+              <>
               <div className="overflow-x-auto">
               <table className="w-full min-w-[500px]">
                 <thead className="border-y bg-gray-50">
                   <tr><TH>Business</TH><TH>Category</TH><TH>Barter Price</TH><TH>Status</TH><TH right>Actions</TH></tr>
                 </thead>
                 <tbody className="divide-y">
-                  {listings.length === 0 ? (
-                    <tr><td colSpan={5} className="px-4 py-10 text-center text-sm text-gray-400">No listings</td></tr>
-                  ) : listings.slice((adminCtrlPage - 1) * LISTINGS_PAGE_SIZE, adminCtrlPage * LISTINGS_PAGE_SIZE).map(l => (
+                  {ctrlRows.length === 0 ? (
+                    <tr><td colSpan={5} className="px-4 py-10 text-center text-sm text-gray-400">{ctrlSearch || ctrlStatus !== 'all' ? 'No listings match your filter' : 'No listings'}</td></tr>
+                  ) : ctrlRows.map(l => (
                     <tr key={l.id} className="hover:bg-gray-50">
                       <TD>
                         <div>
@@ -537,40 +599,32 @@ const ListingsSection = ({
                 </tbody>
               </table>
               </div>
-              {/* Pager */}
-              {(() => {
-                const pages = Math.max(1, Math.ceil(listings.length / LISTINGS_PAGE_SIZE));
-                const from  = listings.length === 0 ? 0 : (adminCtrlPage - 1) * LISTINGS_PAGE_SIZE + 1;
-                const to    = Math.min(adminCtrlPage * LISTINGS_PAGE_SIZE, listings.length);
-                const visible = Array.from({ length: pages }, (_, i) => i + 1).filter(p =>
-                  p === 1 || p === pages || Math.abs(p - adminCtrlPage) <= 1
-                );
-                return (
-                  <div className="flex items-center justify-between px-4 py-3 border-t bg-gray-50/50">
-                    <p className="text-xs text-gray-500">
-                      {listings.length === 0 ? 'No listings' : `${from}–${to} of ${listings.length}`}
-                    </p>
-                    <div className="flex items-center gap-1">
-                      <Button variant="outline" size="sm" className="h-7 w-7 p-0"
-                        disabled={adminCtrlPage === 1} onClick={() => setAdminCtrlPage(p => p - 1)}>
-                        <ChevronRight className="h-3.5 w-3.5 rotate-180" />
+              <div className="flex items-center justify-between px-4 py-3 border-t bg-gray-50/50">
+                <p className="text-xs text-gray-500">
+                  {ctrlFiltered.length === 0 ? 'No listings' : `${ctrlFrom}–${ctrlTo} of ${ctrlFiltered.length}`}
+                </p>
+                <div className="flex items-center gap-1">
+                  <Button variant="outline" size="sm" className="h-7 w-7 p-0"
+                    disabled={ctrlPage === 1} onClick={() => setAdminCtrlPage(p => Math.max(1, p - 1))}>
+                    <ChevronRight className="h-3.5 w-3.5 rotate-180" />
+                  </Button>
+                  {visible.map((p, i, arr) => (
+                    <React.Fragment key={p}>
+                      {i > 0 && arr[i - 1] !== p - 1 && <span className="text-xs text-gray-400 px-1">…</span>}
+                      <Button variant={p === ctrlPage ? 'default' : 'outline'} size="sm"
+                        className={`h-7 w-7 p-0 text-xs ${p === ctrlPage ? 'bg-emerald-600 hover:bg-emerald-700 border-emerald-600 text-white' : ''}`}
+                        onClick={() => setAdminCtrlPage(p)}>
+                        {p}
                       </Button>
-                      {visible.map((p, i, arr) => (
-                        <React.Fragment key={p}>
-                          {i > 0 && arr[i - 1] !== p - 1 && <span className="text-xs text-gray-400 px-1">…</span>}
-                          <Button variant={p === adminCtrlPage ? 'default' : 'outline'} size="sm"
-                            className={`h-7 w-7 p-0 text-xs ${p === adminCtrlPage ? 'bg-emerald-600 hover:bg-emerald-700 border-emerald-600 text-white' : ''}`}
-                            onClick={() => setAdminCtrlPage(p)}>
-                            {p}
-                          </Button>
-                        </React.Fragment>
-                      ))}
-                      <Button variant="outline" size="sm" className="h-7 w-7 p-0"
-                        disabled={adminCtrlPage === pages} onClick={() => setAdminCtrlPage(p => p + 1)}>
-                        <ChevronRight className="h-3.5 w-3.5" />
-                      </Button>
-                    </div>
-                  </div>
+                    </React.Fragment>
+                  ))}
+                  <Button variant="outline" size="sm" className="h-7 w-7 p-0"
+                    disabled={ctrlPage === ctrlPages} onClick={() => setAdminCtrlPage(p => p + 1)}>
+                    <ChevronRight className="h-3.5 w-3.5" />
+                  </Button>
+                </div>
+              </div>
+              </>
                 );
               })()}
             </CardContent>

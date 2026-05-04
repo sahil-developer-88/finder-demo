@@ -9,7 +9,7 @@ const UsersSection = ({ users, loading }: { users: any[]; loading: boolean }) =>
   const [search, setSearch] = useState('');
   const [page, setPage]     = useState(1);
   const [sort, setSort]     = useState<'credits-desc' | 'credits-asc' | 'name' | 'joined-desc' | 'joined-asc' | 'w9-done' | 'w9-pending'>('joined-desc');
-  const PER_PAGE = 10;
+  const PER_PAGE = 100;
 
   const filtered = users
     .filter(u =>

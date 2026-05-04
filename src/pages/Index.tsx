@@ -277,7 +277,7 @@ const Index = () => {
           {/* Sections — only when not filtering and not see-all */}
           {!isFiltering && !isSeeAll && (
             <>
-              <PromoBanners banners={catConfig.banners} />
+              <PromoBanners />
 
               {user && (recoLoading || recommendations.length > 0) && (
                 <HScrollSection

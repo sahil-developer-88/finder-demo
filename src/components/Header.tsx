@@ -70,7 +70,7 @@ const Header = () => {
                 <NavLink icon={User} label="Dashboard" onClick={() => navigate('/account-dashboard')} />
               )}
               {user && !isAdmin && (
-                <NavLink icon={CreditCard} label="Trade: Send / Request" onClick={() => navigate('/account-dashboard?tab=payment-requests&psub=Trade%3A+Send+%2F+Request')} />
+                <NavLink icon={CreditCard} label="Trade: Send / Request" onClick={() => navigate('/account-dashboard?tab=trade-send-request&tsub=Send+Barter')} />
               )}
               {user && isAdmin && (
                 <NavLink icon={Shield} label="Admin" onClick={() => navigate('/admin')} accent="emerald" />
@@ -137,7 +137,17 @@ const Header = () => {
                                 return (
                                   <div
                                     key={n.id}
-                                    onClick={() => { if (!n.read) markAsRead(n.id); if (n.message?.startsWith('trade_request:') || n.title?.toLowerCase().includes('trade request')) { setShowNotifications(false); navigate('/account-dashboard?tab=trade-requests'); } }}
+                                    onClick={() => {
+                                      if (!n.read) markAsRead(n.id);
+                                      setShowNotifications(false);
+                                      if (n.message?.startsWith('trade_request:') || n.title?.toLowerCase().includes('trade request')) {
+                                        navigate('/account-dashboard?tab=trade-send-request&tsub=Trade+Requests');
+                                      } else if (n.title?.toLowerCase().includes('credit') || n.title?.toLowerCase().includes('debit') || n.title?.toLowerCase().includes('barter')) {
+                                        navigate('/account-dashboard?tab=wallet');
+                                      } else {
+                                        navigate('/notifications');
+                                      }
+                                    }}
                                     className={`flex items-start gap-3 px-4 py-3 cursor-pointer hover:bg-gray-50 transition-colors border-b border-gray-50 last:border-0 ${!n.read ? 'bg-indigo-50/50' : ''}`}
                                   >
                                     {/* Icon */}
@@ -287,7 +297,7 @@ const Header = () => {
           )}
           {!isAdmin && (
             <button
-              onClick={() => { navigate('/account-dashboard?tab=payment-requests&psub=Trade%3A+Send+%2F+Request'); closeMobile(); }}
+              onClick={() => { navigate('/account-dashboard?tab=trade-send-request&tsub=Send+Barter'); closeMobile(); }}
               className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium text-white/70 hover:text-white hover:bg-white/10 transition-all text-left"
             >
               <CreditCard className="w-4 h-4" /> Trade: Send / Request

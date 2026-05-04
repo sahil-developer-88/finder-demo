@@ -9,7 +9,6 @@ import {
   FileText, AlertTriangle, CheckCircle, AlertCircle, RefreshCw, Zap, Ban, Scale,
 } from 'lucide-react';
 import { StatCard, SectionTitle } from './shared/ui';
-import { supabase } from '@/integrations/supabase/client';
 
 export interface OverviewExceptions {
   disputes:          number;
@@ -96,17 +95,17 @@ const OverviewSection = ({
       )}
 
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-        <StatCard icon={Users}      label="Total Users"       value={loading ? '—' : stats.totalUsers ?? 0}       color="blue"   trend={12} />
-        <StatCard icon={Store}      label="Active Listings"   value={loading ? '—' : stats.activeListings ?? 0}   color="emerald" trend={8} />
-        <StatCard icon={TrendingUp} label="Completed Trades"  value={loading ? '—' : stats.completedTrades ?? 0}  color="purple" trend={15} />
-        <StatCard icon={Clock}      label="Pending Approvals" value={loading ? '—' : stats.pendingApprovals ?? 0} color="amber"             />
+        <StatCard icon={Users}      label="Total Users"       value={loading ? '—' : stats.totalUsers ?? 0}       color="blue"    trend={12} onClick={() => onNavigate('users', '')} />
+        <StatCard icon={Store}      label="Active Listings"   value={loading ? '—' : stats.activeListings ?? 0}   color="emerald" trend={8}  onClick={() => onNavigate('listings', 'Listings Overview')} />
+        <StatCard icon={TrendingUp} label="Completed Trades"  value={loading ? '—' : stats.completedTrades ?? 0}  color="purple"  trend={15} onClick={() => onNavigate('activity', 'Transaction Feed')} />
+        <StatCard icon={Clock}      label="Pending Approvals" value={loading ? '—' : stats.pendingApprovals ?? 0} color="amber"              onClick={() => onNavigate('listings', 'Moderation Queue')} />
       </div>
 
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-        <StatCard icon={DollarSign} label="Credits Issued"    value={loading ? '—' : `$${(stats.totalCreditsIssued ?? 0).toLocaleString(undefined, { maximumFractionDigits: 0 })}`}  color="indigo" trend={6} />
-        <StatCard icon={CreditCard} label="Available Credits" value={loading ? '—' : `$${(stats.totalAvailableCredits ?? 0).toLocaleString(undefined, { maximumFractionDigits: 0 })}`} color="emerald" />
-        <StatCard icon={Receipt}    label="1099s Required"    value={loading ? '—' : stats.required1099s ?? 0}    color="rose"   />
-        <StatCard icon={FileText}   label="W-9 Completion"    value={loading ? '—' : `${stats.w9Rate ?? 0}%`}     color="blue"   />
+        <StatCard icon={DollarSign} label="Credits Issued"    value={loading ? '—' : `$${(stats.totalCreditsIssued ?? 0).toLocaleString(undefined, { maximumFractionDigits: 0 })}`}  color="indigo"  trend={6} onClick={() => onNavigate('credits', 'Summary')} />
+        <StatCard icon={CreditCard} label="Available Credits" value={loading ? '—' : `$${(stats.totalAvailableCredits ?? 0).toLocaleString(undefined, { maximumFractionDigits: 0 })}`} color="emerald"          onClick={() => onNavigate('credits', 'Member Balances')} />
+        <StatCard icon={Receipt}    label="1099s Required"    value={loading ? '—' : stats.required1099s ?? 0}    color="rose"             onClick={() => onNavigate('tax', '1099-B Prep')} />
+        <StatCard icon={FileText}   label="W-9 Completion"    value={loading ? '—' : `${stats.w9Rate ?? 0}%`}     color="blue"             onClick={() => onNavigate('tax', 'W-9 Tracking')} />
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">

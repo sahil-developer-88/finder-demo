@@ -2,9 +2,85 @@ import React, { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import {
   Loader2, Edit2, CheckCircle, XCircle, Pause, Trash2, Plug, FileText, Clock,
-  Users, ArrowUpRight, Zap, DollarSign, Ban, Scale, Store,
+  Users, ArrowUpRight, Zap, DollarSign, Ban, Scale, Store, Plus,
 } from 'lucide-react';
 import { Pill } from './shared/ui';
+import { POSConnectionWizard } from '@/components/merchant/POSConnectionWizard';
+import { useToast } from '@/hooks/use-toast';
+
+const ADMIN_CALLBACK = '/admin?section=listings&sub=Listing+Details';
+
+const POSTab = ({ userId, posIntegrations, onRefresh }: { userId: string; posIntegrations: any[]; onRefresh: () => void }) => {
+  const [wizardOpen, setWizardOpen] = useState(false);
+  const [disconnecting, setDisc]    = useState<string | null>(null);
+  const { toast } = useToast();
+
+  const handleDisconnect = async (id: string) => {
+    if (!confirm('Disconnect this POS system?')) return;
+    setDisc(id);
+    await supabase.from('pos_integrations').delete().eq('id', id);
+    onRefresh();
+    setDisc(null);
+  };
+
+  return (
+    <div className="space-y-3">
+      {posIntegrations.length === 0 && !wizardOpen && (
+        <div className="text-center py-8 text-gray-400 border border-dashed rounded-xl">
+          <Plug className="h-8 w-8 mx-auto mb-2 opacity-30" />
+          <p className="text-sm">No POS systems connected</p>
+        </div>
+      )}
+
+      {posIntegrations.map((p: any) => (
+        <div key={p.id} className="border rounded-xl p-4 space-y-2 hover:border-gray-300 transition-colors">
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="font-semibold text-gray-900 capitalize">{p.provider}</p>
+              <p className="text-xs text-gray-400">Connected {new Date(p.created_at).toLocaleDateString()}</p>
+            </div>
+            <div className="flex items-center gap-2">
+              <Pill status={p.status || 'active'} />
+              <button
+                onClick={() => handleDisconnect(p.id)}
+                disabled={disconnecting === p.id}
+                className="text-xs text-red-500 hover:text-red-700 font-medium flex items-center gap-1"
+              >
+                {disconnecting === p.id ? <Loader2 className="h-3 w-3 animate-spin" /> : <XCircle className="h-3.5 w-3.5" />}
+                Disconnect
+              </button>
+            </div>
+          </div>
+          <div className="grid grid-cols-2 gap-2 text-xs">
+            <div><span className="text-gray-400">Store ID: </span><span className="font-mono text-gray-700">{p.store_id || '—'}</span></div>
+            {p.access_token && (
+              <div><span className="text-gray-400">Token: </span><span className="font-mono text-gray-700">{p.access_token.slice(0, 8)}••••••••</span></div>
+            )}
+          </div>
+        </div>
+      ))}
+
+      <button
+        onClick={() => setWizardOpen(true)}
+        className="w-full flex items-center justify-center gap-2 border border-dashed border-primary/40 rounded-xl py-3 text-sm text-primary font-semibold hover:bg-primary/5 transition-all"
+      >
+        <Plus className="h-4 w-4" /> Connect a POS System
+      </button>
+
+      <POSConnectionWizard
+        open={wizardOpen}
+        onOpenChange={setWizardOpen}
+        targetUserId={userId}
+        callbackRedirect={ADMIN_CALLBACK}
+        onSuccess={() => {
+          setWizardOpen(false);
+          onRefresh();
+          toast({ title: 'POS Connected', description: 'The merchant\'s POS has been connected successfully.' });
+        }}
+      />
+    </div>
+  );
+};
 
 const MerchantDetailPanel = ({ listing, onAction, onEdit, readOnly = false }: { listing: any; onAction: (id: string, action: string) => void; onEdit: (l: any) => void; readOnly?: boolean }) => {
   const [activeTab, setActiveTab]         = useState('overview');
@@ -257,26 +333,14 @@ const MerchantDetailPanel = ({ listing, onAction, onEdit, readOnly = false }: { 
 
           {/* ── POS INTEGRATIONS ── */}
           {activeTab === 'pos' && (
-            <div className="space-y-3">
-              {posIntegrations.length === 0 ? (
-                <div className="text-center py-10 text-gray-400">
-                  <Plug className="h-8 w-8 mx-auto mb-2 opacity-30" />
-                  <p className="text-sm">No POS systems connected</p>
-                </div>
-              ) : posIntegrations.map((p: any) => (
-                <div key={p.id} className="bg-gray-50 rounded-xl p-4 space-y-2">
-                  <div className="flex items-center justify-between">
-                    <span className="font-semibold text-gray-900 capitalize">{p.provider}</span>
-                    <Pill status={p.status || 'active'} />
-                  </div>
-                  <div className="grid grid-cols-2 gap-2 text-xs">
-                    <div><span className="text-gray-400">Store ID: </span><span className="font-mono text-gray-700">{p.store_id || '—'}</span></div>
-                    <div><span className="text-gray-400">Connected: </span><span className="text-gray-700">{new Date(p.created_at).toLocaleDateString()}</span></div>
-                    {p.access_token && <div className="col-span-2"><span className="text-gray-400">Token: </span><span className="font-mono text-gray-700">{p.access_token.slice(0, 20)}…</span></div>}
-                  </div>
-                </div>
-              ))}
-            </div>
+            <POSTab
+              userId={listing.user_id}
+              posIntegrations={posIntegrations}
+              onRefresh={() => {
+                supabase.from('pos_integrations').select('*').eq('user_id', listing.user_id)
+                  .then(({ data }) => setPOS(data || []));
+              }}
+            />
           )}
 
           {/* ── TAX / W9 ── */}
