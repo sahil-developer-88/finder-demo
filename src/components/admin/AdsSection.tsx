@@ -119,12 +119,19 @@ const AdsSection = ({ activeSubTab }: { activeSubTab: string }) => {
       return;
     }
 
+    const typeMap: Record<string, string> = {
+      announcement: 'info',
+      sale:         'success',
+      clearance:    'warning',
+      alert:        'warning',
+    };
+
     // Insert a notification row per user
     const rows = userIds.map((uid: string) => ({
       user_id:    uid,
       title:      pushTitle.trim(),
       message:    pushBody.trim(),
-      type:       pushType,
+      type:       typeMap[pushType] ?? 'info',
       read:       false,
     }));
 

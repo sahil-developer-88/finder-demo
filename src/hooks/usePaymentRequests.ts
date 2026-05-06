@@ -142,7 +142,7 @@ export const usePaymentRequests = () => {
       throw new Error('PENDING_APPROVAL');
     }
     if (biz?.some((b: any) => b.status === 'suspended')) {
-      toast({ title: 'Account Suspended', description: 'Your account is suspended. Please contact support@swapshop.com.', variant: 'destructive' });
+      toast({ title: 'Account Suspended', description: 'Your account is suspended. Please contact support@valuehubexchange.com.', variant: 'destructive' });
       throw new Error('Account suspended');
     }
 
@@ -343,6 +343,13 @@ export const usePaymentRequests = () => {
     if (!user) throw new Error('User not authenticated');
 
     try {
+      // Fetch request first to get sender details for notification
+      const { data: req } = await supabase
+        .from('payment_requests')
+        .select('seller_id, total_amount, service_description, metadata')
+        .eq('id', requestId)
+        .single();
+
       const { error } = await supabase
         .from('payment_requests')
         .update({
@@ -354,9 +361,22 @@ export const usePaymentRequests = () => {
 
       if (error) throw error;
 
+      // Notify the sender
+      if (req?.seller_id) {
+        const isSend = req.metadata?.type === 'send';
+        await supabase.from('notifications').insert({
+          user_id: req.seller_id,
+          title: isSend ? 'Barter Send Rejected' : 'Payment Request Rejected',
+          message: isSend
+            ? `Your barter send of $${req.total_amount?.toFixed(2)} for "${req.service_description}" was rejected by the recipient.`
+            : `Your payment request of $${req.total_amount?.toFixed(2)} for "${req.service_description}" was rejected.`,
+          type: 'warning',
+        });
+      }
+
       toast({
         title: 'Request Rejected',
-        description: 'The seller has been notified',
+        description: 'The sender has been notified',
       });
 
       fetchPaymentRequests();
@@ -441,42 +461,12 @@ export const usePaymentRequests = () => {
       throw new Error('PENDING_APPROVAL');
     }
     if (biz?.some((b: any) => b.status === 'suspended')) {
-      toast({ title: 'Account Suspended', description: 'Your account is suspended. Please contact support@swapshop.com.', variant: 'destructive' });
+      toast({ title: 'Account Suspended', description: 'Your account is suspended. Please contact support@valuehubexchange.com.', variant: 'destructive' });
       throw new Error('Account suspended');
     }
 
     try {
-      // 1. Deduct credits from sender (updates available_credits + spent_credits)
-      const { error: debitError } = await supabase.rpc('debit_user_credits', {
-        p_user_id: user.id,
-        p_amount: amount,
-      });
-      if (debitError) throw debitError;
-
-      // 2. Credit recipient (updates available_credits + earned_credits)
-      const { error: creditError } = await supabase.rpc('credit_merchant_balance', {
-        p_merchant_id: recipientId,
-        p_amount: amount,
-      });
-      if (creditError) throw creditError;
-
-      // 3. Create transaction record
-      const { data: transaction, error: txError } = await supabase
-        .from('transactions')
-        .insert({
-          from_user_id: user.id,
-          to_user_id: recipientId,
-          points_amount: amount,
-          service_description: memo || 'Barter payment',
-          status: 'completed',
-          transaction_type: 'send',
-        })
-        .select()
-        .single();
-
-      if (txError) throw txError;
-
-      // 4. Insert payment_request record as paid
+      // Create a pending send — recipient must accept before credits move
       const { data, error } = await supabase
         .from('payment_requests')
         .insert({
@@ -486,35 +476,26 @@ export const usePaymentRequests = () => {
           total_amount: amount,
           line_items: [],
           notes: null,
-          status: 'paid',
-          responded_at: new Date().toISOString(),
-          paid_at: new Date().toISOString(),
-          transaction_id: transaction.id,
-          metadata: { type: 'send' },
+          status: 'pending',
+          metadata: { type: 'send', barter_amount: amount },
         })
         .select()
         .single();
 
       if (error) throw error;
 
-      // 5. Notify recipient (CR) and sender (DR)
-      await supabase.from('notifications').insert({
+      // Notify recipient so they can navigate to /payment-requests and accept
+      const { error: notifError } = await supabase.from('notifications').insert({
         user_id: recipientId,
-        title: 'Barter Credits Received',
-        message: `CR: ${amount.toFixed(2)} barter credits received for "${memo || 'Barter payment'}"`,
-        type: 'success',
-      });
-
-      await supabase.from('notifications').insert({
-        user_id: user.id,
-        title: 'Barter Credits Debited',
-        message: `DR: ${amount.toFixed(2)} barter credits debited for "${memo || 'Barter payment'}"`,
+        title: 'Barter Credits Pending',
+        message: `${amount.toFixed(2)} barter credits are waiting for your acceptance: "${memo || 'Barter payment'}"`,
         type: 'info',
       });
+      if (notifError) console.error('Failed to notify recipient:', notifError.message);
 
       toast({
-        title: 'Barter Sent!',
-        description: `${amount.toFixed(2)} credits transferred successfully`,
+        title: 'Barter Send Initiated',
+        description: `Waiting for recipient to accept ${amount.toFixed(2)} credits`,
       });
 
       fetchPaymentRequests();
@@ -524,6 +505,92 @@ export const usePaymentRequests = () => {
       toast({
         title: 'Error',
         description: error.message || 'Failed to send payment',
+        variant: 'destructive',
+      });
+      throw error;
+    }
+  };
+
+  const acceptSendRequest = async (
+    requestId: string,
+    senderId: string,
+    amount: number,
+    description: string
+  ) => {
+    if (!user) throw new Error('User not authenticated');
+
+    try {
+      // 1. Debit the sender
+      const { error: debitError } = await supabase.rpc('debit_user_credits', {
+        p_user_id: senderId,
+        p_amount: amount,
+      });
+      if (debitError) throw debitError;
+
+      // 2. Credit the recipient (current user)
+      const { error: creditError } = await supabase.rpc('credit_merchant_balance', {
+        p_merchant_id: user.id,
+        p_amount: amount,
+      });
+      if (creditError) throw creditError;
+
+      // 3. Create transaction record
+      const { data: transaction, error: txError } = await supabase
+        .from('transactions')
+        .insert({
+          from_user_id: senderId,
+          to_user_id: user.id,
+          points_amount: amount,
+          service_description: description,
+          status: 'completed',
+          transaction_type: 'send',
+        })
+        .select()
+        .single();
+      if (txError) throw txError;
+
+      // 4. Mark request as paid
+      const { error: updateError } = await supabase
+        .from('payment_requests')
+        .update({
+          status: 'paid',
+          paid_at: new Date().toISOString(),
+          responded_at: new Date().toISOString(),
+          transaction_id: transaction.id,
+        })
+        .eq('id', requestId)
+        .eq('buyer_id', user.id);
+      if (updateError) throw updateError;
+
+      // 5. Notify both parties
+      const [senderNotif, recipientNotif] = await Promise.all([
+        supabase.from('notifications').insert({
+          user_id: senderId,
+          title: 'Barter Credits Accepted',
+          message: `DR: ${amount.toFixed(2)} barter credits accepted by recipient for "${description}"`,
+          type: 'info',
+        }),
+        supabase.from('notifications').insert({
+          user_id: user.id,
+          title: 'Barter Credits Received',
+          message: `CR: ${amount.toFixed(2)} barter credits received for "${description}"`,
+          type: 'success',
+        }),
+      ]);
+      if (senderNotif.error)    console.error('Failed to notify sender:', senderNotif.error.message);
+      if (recipientNotif.error) console.error('Failed to notify recipient:', recipientNotif.error.message);
+
+      toast({
+        title: 'Credits Accepted!',
+        description: `${amount.toFixed(2)} barter credits have been added to your account`,
+      });
+
+      fetchPaymentRequests();
+    } catch (error: any) {
+      console.error('Error accepting send request:', error);
+      toast({
+        title: 'Error',
+        description: error.message || 'Failed to accept barter send',
         variant: 'destructive',
       });
       throw error;
@@ -561,6 +628,7 @@ export const usePaymentRequests = () => {
     loading,
     createPaymentRequest,
     sendPayment,
+    acceptSendRequest,
     acceptPaymentRequest,
     processPaymentRequest,
     rejectPaymentRequest,

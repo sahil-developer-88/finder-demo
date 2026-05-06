@@ -40,7 +40,8 @@ const TxMonSection = ({
     supabase.from('ledger_entries')
       .select('reference_id, balance_after')
       .in('reference_id', txIds)
-      .then(({ data: rows }) => {
+      .then(({ data: rows, error }) => {
+        if (error) { console.error('Failed to load ledger balances:', error.message); return; }
         if (!rows) return;
         const map: Record<string, number> = {};
         rows.forEach((r: any) => {
@@ -54,7 +55,8 @@ const TxMonSection = ({
     // Fetch current wallet balance per merchant (used in edit modal)
     if (merchantIds.length) {
       supabase.from('user_credits').select('user_id, available_credits').in('user_id', merchantIds)
-        .then(({ data: rows }) => {
+        .then(({ data: rows, error }) => {
+          if (error) { console.error('Failed to load wallet balances:', error.message); return; }
           if (!rows) return;
           const map: Record<string, number> = {};
           rows.forEach((r: any) => { map[r.user_id] = Number(r.available_credits) || 0; });
@@ -104,7 +106,12 @@ const TxMonSection = ({
     setFraudResult(null);
     try {
       const { data, error } = await supabase.rpc('run_fraud_detection');
-      if (!error && data) setFraudResult({ flagged: (data as any).flagged ?? 0, cleared: (data as any).cleared ?? 0 });
+      if (error) throw error;
+      if (data) setFraudResult({ flagged: (data as any).flagged ?? 0, cleared: (data as any).cleared ?? 0 });
+    } catch (err: any) {
+      console.error('Fraud detection failed:', err?.message);
+      setFraudResult({ flagged: 0, cleared: 0 });
+      // Toast not available here — result area will show 0/0 indicating failure
     } finally {
       setFraudRunning(false);
     }
@@ -348,6 +355,9 @@ const TxMonSection = ({
     if (p === 'square')     return <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-blue-100 text-blue-700">Square</span>;
     if (p === 'clover')     return <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-orange-100 text-orange-700">Clover</span>;
     if (p === 'lightspeed') return <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-green-100 text-green-700">Lightspeed</span>;
+    if (p === 'shopify')    return <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-emerald-100 text-emerald-700">Shopify</span>;
+    if (p === 'toast')      return <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-red-100 text-red-700">Toast</span>;
+    if (p === 'adyen')      return <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-cyan-100 text-cyan-700">Adyen</span>;
     if (p === 'barter')     return <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-indigo-100 text-indigo-700">Barter</span>;
     return <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-gray-100 text-gray-600">{provider || 'Unknown'}</span>;
   };
@@ -1325,9 +1335,12 @@ const TxMonSection = ({
 
         {/* KPI row */}
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-          <StatCard icon={AlertCircle}  label="Hard Flagged"     value={hardFlagged.length}  color="red"     />
-          <StatCard icon={AlertTriangle} label="Soft Flagged"    value={softFlagged.length}  color="amber"   />
-          <StatCard icon={Shield}        label="Pending Reports" value={pendingReports}       color="orange"  />
+          <StatCard icon={AlertCircle}  label="Hard Flagged"     value={hardFlagged.length}  color="red"
+            onClick={() => { setFraudTab('auto'); setTimeout(() => document.getElementById('ff-hard')?.scrollIntoView({ behavior: 'smooth', block: 'start' }), 80); }} />
+          <StatCard icon={AlertTriangle} label="Soft Flagged"    value={softFlagged.length}  color="amber"
+            onClick={() => { setFraudTab('auto'); setTimeout(() => document.getElementById('ff-soft')?.scrollIntoView({ behavior: 'smooth', block: 'start' }), 80); }} />
+          <StatCard icon={Shield}        label="Pending Reports" value={pendingReports}       color="orange"
+            onClick={() => setFraudTab('reports')} />
           <StatCard icon={CheckCircle}   label="Clean Accounts"  value={cleanCount}           color="emerald" />
         </div>
 
@@ -1364,8 +1377,8 @@ const TxMonSection = ({
               </Card>
             ) : (
               <>
-                {hardFlagged.length > 0 && <FlagTable rows={hardFlagged} type="hard" page={hardPage} setPage={setHardPage} />}
-                {softFlagged.length > 0 && <FlagTable rows={softFlagged} type="soft" page={softPage} setPage={setSoftPage} />}
+                {hardFlagged.length > 0 && <div id="ff-hard"><FlagTable rows={hardFlagged} type="hard" page={hardPage} setPage={setHardPage} /></div>}
+                {softFlagged.length > 0 && <div id="ff-soft"><FlagTable rows={softFlagged} type="soft" page={softPage} setPage={setSoftPage} /></div>}
               </>
             )}
           </div>

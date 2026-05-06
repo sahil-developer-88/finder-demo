@@ -40,13 +40,14 @@ const PaymentRequestDetailDialog: React.FC<PaymentRequestDetailDialogProps> = ({
   open,
   onOpenChange,
 }) => {
-  const { acceptPaymentRequest, processPaymentRequest, rejectPaymentRequest, declineAfterAccept, cancelPaymentRequest } = usePaymentRequests();
+  const { acceptPaymentRequest, acceptSendRequest, processPaymentRequest, rejectPaymentRequest, declineAfterAccept, cancelPaymentRequest } = usePaymentRequests();
   const { user } = useAuth();
   const [processing, setProcessing] = useState(false);
   const [localStatus, setLocalStatus] = useState(request.status);
   const [userCredits, setUserCredits] = useState<number | null>(null);
 
   const isBuyer = user?.id === request.buyer_id;
+  const isSendType = request.metadata?.type === 'send';
 
   // Fetch buyer's balance when dialog opens
   useEffect(() => {
@@ -68,6 +69,21 @@ const PaymentRequestDetailDialog: React.FC<PaymentRequestDetailDialogProps> = ({
     try {
       await acceptPaymentRequest(request.id);
       setLocalStatus('accepted'); // stay open, show Pay Now + Decline
+    } finally {
+      setProcessing(false);
+    }
+  };
+
+  const handleAcceptSend = async () => {
+    setProcessing(true);
+    try {
+      await acceptSendRequest(
+        request.id,
+        request.seller_id,
+        request.total_amount,
+        request.service_description
+      );
+      onOpenChange(false);
     } finally {
       setProcessing(false);
     }
@@ -143,7 +159,10 @@ const PaymentRequestDetailDialog: React.FC<PaymentRequestDetailDialogProps> = ({
             </div>
             <div className="flex-1 min-w-0">
               <p className="text-white/60 text-xs mb-0.5">
-                {isBuyer ? 'Request from' : 'Request sent to'}
+                {isSendType
+                  ? (isBuyer ? 'Barter send from' : 'Barter sent to')
+                  : (isBuyer ? 'Request from' : 'Request sent to')
+                }
               </p>
               <h3 className="text-white font-bold text-base truncate">{merchantName}</h3>
             </div>
@@ -259,7 +278,28 @@ const PaymentRequestDetailDialog: React.FC<PaymentRequestDetailDialogProps> = ({
 
           {/* Action Buttons */}
           <div className="flex gap-2 pt-1">
-            {canRespond && (
+            {canRespond && isSendType && (
+              <>
+                <button
+                  onClick={handleAcceptSend}
+                  disabled={processing}
+                  className="flex-1 flex items-center justify-center gap-2 py-2.5 rounded-xl bg-gradient-to-r from-emerald-500 to-teal-600 hover:from-emerald-600 hover:to-teal-700 text-white font-semibold text-sm transition-all disabled:opacity-50"
+                >
+                  <CheckCircle className="h-4 w-4" />
+                  {processing ? 'Processing...' : 'Accept & Receive'}
+                </button>
+                <button
+                  onClick={handleReject}
+                  disabled={processing}
+                  className="flex-1 flex items-center justify-center gap-2 py-2.5 rounded-xl border-2 border-red-200 text-red-500 hover:bg-red-50 font-semibold text-sm transition-all disabled:opacity-50"
+                >
+                  <XCircle className="h-4 w-4" />
+                  Reject
+                </button>
+              </>
+            )}
+
+            {canRespond && !isSendType && (
               <>
                 <button
                   onClick={handleAccept}

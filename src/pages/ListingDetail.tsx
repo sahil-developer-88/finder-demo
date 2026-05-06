@@ -224,11 +224,14 @@ const ListingDetail = () => {
   const handleTradeResponse = async (msg: any, accepted: boolean) => {
     let parsed: any = {};
     try { parsed = JSON.parse(msg.content); } catch { return; }
-    await supabase.from('messages').update({
+
+    const { error: msgErr } = await supabase.from('messages').update({
       content: JSON.stringify({ ...parsed, status: accepted ? 'accepted' : 'rejected' })
     }).eq('id', msg.id);
+    if (msgErr) { toast({ title: 'Failed to update trade status', description: msgErr.message, variant: 'destructive' }); return; }
+
     if (parsed.senderId) {
-      await supabase.from('notifications').insert({
+      const { error: notifErr } = await supabase.from('notifications').insert({
         user_id: parsed.senderId,
         title: accepted ? 'Trade Request Accepted!' : 'Trade Request Declined',
         message: accepted
@@ -236,6 +239,7 @@ const ListingDetail = () => {
           : `${business.business_name} declined your request for "${parsed.service}".`,
         type: accepted ? 'success' : 'info',
       });
+      if (notifErr) console.error('Failed to notify trade requester:', notifErr.message);
     }
   };
 
@@ -412,7 +416,7 @@ const ListingDetail = () => {
                 <div className="grid grid-cols-2 gap-3">
                   <div className="bg-emerald-50 rounded-2xl p-4 text-center border border-emerald-100">
                     <p className="text-2xl font-black text-emerald-600">{business.barter_percentage}%</p>
-                    <p className="text-xs text-emerald-600 font-semibold mt-1">SwapShop Credits</p>
+                    <p className="text-xs text-emerald-600 font-semibold mt-1">Valuehub Exchange Credits</p>
                   </div>
                   <div className="bg-gray-50 rounded-2xl p-4 text-center border border-gray-100">
                     <p className="text-2xl font-black text-gray-700">{100 - (business.barter_percentage ?? 0)}%</p>

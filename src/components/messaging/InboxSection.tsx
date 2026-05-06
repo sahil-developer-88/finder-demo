@@ -16,6 +16,7 @@ import {
 } from '@/components/ui/popover';
 import MerchantSearchCombobox from '@/components/payment-requests/MerchantSearchCombobox';
 import { supabase } from '@/integrations/supabase/client';
+import { useToast } from '@/hooks/use-toast';
 import PendingApprovalModal from '@/components/ui/PendingApprovalModal';
 import { format, isToday, isYesterday } from 'date-fns';
 import {
@@ -88,6 +89,7 @@ const InboxSection: React.FC<InboxSectionProps> = ({
   tradeRequest,
 }) => {
   const { user } = useAuth();
+  const { toast } = useToast();
   const { conversations, messages, loading, fetchMessages, sendMessage } = useMessages();
   const [pendingModalOpen, setPendingModalOpen] = useState(false);
 
@@ -164,12 +166,19 @@ const InboxSection: React.FC<InboxSectionProps> = ({
     tradeRequestSentRef.current = true;
 
     // Save to trade_requests table
-    const { data: tradeReq, error } = await supabase.from('trade_requests').insert({
+    const { error } = await supabase.from('trade_requests').insert({
       sender_id: user?.id,
       merchant_id: selectedId,
       service_name: tradeRequest.serviceName,
       barter_percentage: tradeRequest.barterPercentage,
     }).select().single();
+
+    if (error) {
+      tradeRequestSentRef.current = false;
+      setSending(false);
+      toast({ title: 'Failed to send trade request', description: error.message, variant: 'destructive' });
+      return;
+    }
 
     // Trigger handles the notification automatically
     await sendMessage(selectedId, `Hi! I've sent a trade request for "${tradeRequest.serviceName}". Please check your notifications to accept or decline.`);
@@ -177,17 +186,15 @@ const InboxSection: React.FC<InboxSectionProps> = ({
   };
 
   const handleTradeResponse = async (msg: any, accepted: boolean) => {
-    // Parse the trade request content
     let parsed: any = {};
     try { parsed = JSON.parse(msg.content); } catch { return; }
 
-    // Update the message with response so it can't be accepted/rejected again
-    await supabase.from('messages').update({ content: JSON.stringify({ ...parsed, status: accepted ? 'accepted' : 'rejected' }) }).eq('id', msg.id);
+    const { error: msgErr } = await supabase.from('messages').update({ content: JSON.stringify({ ...parsed, status: accepted ? 'accepted' : 'rejected' }) }).eq('id', msg.id);
+    if (msgErr) { toast({ title: 'Failed to update trade status', description: msgErr.message, variant: 'destructive' }); return; }
 
-    // Notify the sender (the customer who requested)
     const notifUserId = parsed.senderId;
     if (notifUserId) {
-      await supabase.from('notifications').insert({
+      const { error: notifErr } = await supabase.from('notifications').insert({
         user_id: notifUserId,
         title: accepted ? 'Trade Request Accepted!' : 'Trade Request Declined',
         message: accepted
@@ -195,6 +202,7 @@ const InboxSection: React.FC<InboxSectionProps> = ({
           : `${displayName} declined your request for "${parsed.service}".`,
         type: accepted ? 'success' : 'info',
       });
+      if (notifErr) console.error('Failed to notify trade requester:', notifErr.message);
     }
   };
 
@@ -336,7 +344,7 @@ const InboxSection: React.FC<InboxSectionProps> = ({
                 >
                   <MessageSquare className="h-12 w-12 text-white" />
                 </div>
-                <h2 className="text-2xl font-light text-gray-700 mb-2">SwapShop Web</h2>
+                <h2 className="text-2xl font-light text-gray-700 mb-2">Valuehub Exchange Web</h2>
                 <p className="text-sm text-gray-500 leading-relaxed">
                   Send and receive messages to connect with other members.
                 </p>
@@ -421,7 +429,7 @@ const InboxSection: React.FC<InboxSectionProps> = ({
                                     </div>
                                     <p className="text-sm font-semibold text-gray-900 mb-1">{parsed.service}</p>
                                     <p className="text-xs text-gray-500 mb-3">
-                                      {parsed.barter}% SwapShop Credits + {100 - (parsed.barter ?? 0)}% Cash
+                                      {parsed.barter}% Valuehub Exchange Credits + {100 - (parsed.barter ?? 0)}% Cash
                                     </p>
                                     {!status && isRecipient && (
                                       <div className="flex gap-2">

@@ -41,6 +41,8 @@ import MerchantSupportTab from '@/components/merchant/MerchantSupportTab';
 import TradeRequestsPage from './TradeRequestsPage';
 import MerchantDashboard from '@/components/merchant/MerchantDashboard';
 import CreatePaymentRequest from '@/components/payment-requests/CreatePaymentRequest';
+import { usePaymentRequests } from '@/hooks/usePaymentRequests';
+import PaymentRequestDetailDialog from '@/components/payment-requests/PaymentRequestDetailDialog';
 import { useAuth } from '@/hooks/useAuth';
 import { useProducts } from '@/hooks/useProducts';
 import { supabase } from '@/integrations/supabase/client';
@@ -48,6 +50,8 @@ import { usePushNotifications } from '@/hooks/usePushNotifications';
 import { usePushTriggers } from '@/hooks/usePushTriggers';
 import { useFavorites } from '@/hooks/useFavorites';
 import { useToast } from '@/hooks/use-toast';
+import { useNotifications } from '@/hooks/useNotifications';
+import { formatDistanceToNow } from 'date-fns';
 
 // ─── Nav ─────────────────────────────────────────────────────────────────────
 const NAV_ITEMS = [
@@ -58,7 +62,7 @@ const NAV_ITEMS = [
   { id: 'inbox',            icon: MessageSquare,   label: 'Inbox',            subs: [] },
   { id: 'wallet',           icon: Wallet,          label: 'Wallet',           subs: [] },
   { id: 'payment-requests',    icon: CreditCard,      label: 'Payment Requests',     subs: ['Analytics', 'Daily Summary', 'Integrations', 'Transactions'] },
-  { id: 'trade-send-request', icon: ArrowLeftRight,  label: 'Trade: Send / Request', subs: ['Send Barter', 'Request Barter', 'Trade Requests'] },
+  { id: 'trade-send-request', icon: ArrowLeftRight,  label: 'Trade: Send / Request', subs: ['Send Barter', 'Request Barter', 'Trade Requests', 'Barter Notifications'] },
   { id: 'orders',           icon: Package,         label: 'Orders',           subs: [] },
   { id: 'reviews',          icon: Star,            label: 'Reviews',          subs: [] },
   { id: 'referrals',        icon: Gift,            label: 'Referrals',        subs: [] },
@@ -568,7 +572,7 @@ const myListings = [
 const VALID_TABS = ['overview', 'listings', 'discover', 'favorites', 'inbox', 'wallet', 'payment-requests', 'trade-send-request', 'orders', 'reviews', 'referrals', 'ledger', 'support', 'profile'];
 const VALID_SUBS = ['Account', 'My Business', 'Barter QR', 'Tax', 'Integrations'];
 const VALID_PAYMENT_SUBS = ['Analytics', 'Daily Summary', 'Integrations', 'Transactions'];
-const VALID_TRADE_SUBS = ['Send Barter', 'Request Barter', 'Trade Requests'];
+const VALID_TRADE_SUBS = ['Send Barter', 'Request Barter', 'Trade Requests', 'Barter Notifications'];
 
 const Dashboard = () => {
   const { notificationsEnabled, enableNotifications } = usePushNotifications();
@@ -604,6 +608,11 @@ const Dashboard = () => {
   const { user } = useAuth();
   const { products: posProducts, refetch: refetchProducts } = useProducts();
   const { toast } = useToast();
+  const { notifications, markAsRead } = useNotifications();
+  const { receivedRequests, sentRequests, acceptSendRequest, rejectPaymentRequest } = usePaymentRequests();
+  const [barterDialogRequest, setBarterDialogRequest] = React.useState<any>(null);
+  const [barterDialogOpen, setBarterDialogOpen] = React.useState(false);
+  const [processingId, setProcessingId] = React.useState<string | null>(null);
   const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
 
@@ -843,7 +852,8 @@ const Dashboard = () => {
 
   const handleDismissReminder = async () => {
     if (!user) return;
-    await supabase.from('profiles').update({ pos_setup_preference: 'not_needed' }).eq('user_id', user.id);
+    const { error } = await supabase.from('profiles').update({ pos_setup_preference: 'not_needed' }).eq('user_id', user.id);
+    if (error) { toast({ title: 'Failed to dismiss reminder', description: error.message, variant: 'destructive' }); return; }
     setShowPOSReminder(false);
     toast({ title: 'Reminder dismissed', description: 'You can still connect your POS anytime from POS Integration.' });
   };
@@ -883,10 +893,10 @@ const Dashboard = () => {
             <p className="text-sm font-semibold text-red-800">What to do next:</p>
             <p className="text-sm text-red-700">Please contact our support team to resolve this issue and restore access to your account.</p>
             <a
-              href="mailto:support@swapshop.com"
+              href="mailto:support@valuehubexchange.com"
               className="inline-flex items-center gap-2 mt-2 text-sm font-semibold text-red-700 underline underline-offset-2 hover:text-red-900"
             >
-              support@swapshop.com
+              support@valuehubexchange.com
             </a>
           </div>
           <p className="text-xs text-gray-400">If you believe this is a mistake, please email us with your account details and we'll review your case promptly.</p>
@@ -1596,6 +1606,161 @@ const Dashboard = () => {
             {tradeSub === 'Trade Requests' && (
               <TradeRequestsPage embedded />
             )}
+            {tradeSub === 'Barter Notifications' && (() => {
+              const byNewest = (a: { created_at: string }, b: { created_at: string }) =>
+                new Date(b.created_at).getTime() - new Date(a.created_at).getTime();
+              const pendingSends = receivedRequests
+                .filter(r => r.metadata?.type === 'send' && r.status === 'pending' && !r.is_expired)
+                .sort(byNewest);
+              const completedSends = receivedRequests
+                .filter(r => r.metadata?.type === 'send' && (r.status === 'paid' || r.status === 'rejected' || r.status === 'cancelled'))
+                .sort(byNewest);
+              const mySentSends = sentRequests
+                .filter(r => r.metadata?.type === 'send')
+                .sort(byNewest);
+              const statusBadge = (status: string, isSent = false) => {
+                if (status === 'pending') return <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-amber-100 text-amber-700">Pending</span>;
+                if (status === 'paid') return <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-700">{isSent ? 'Accepted' : 'Received'}</span>;
+                if (status === 'rejected') return <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-red-100 text-red-600">Rejected</span>;
+                return <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-gray-100 text-gray-500">Cancelled</span>;
+              };
+              const hasHistory = completedSends.length > 0 || mySentSends.length > 0;
+              return (
+                <div className="space-y-6">
+                  <div>
+                    <h2 className="text-xl font-bold text-gray-900">Barter Notifications</h2>
+                    <p className="text-sm text-gray-500 mt-0.5">Incoming barter credit activity and pending actions</p>
+                  </div>
+
+                  {/* ── Pending Actions ── */}
+                  {pendingSends.length > 0 && (
+                    <div className="space-y-3">
+                      <h3 className="text-sm font-bold text-amber-700 uppercase tracking-wide flex items-center gap-2">
+                        <Clock className="h-4 w-4" /> Pending Acceptance ({pendingSends.length})
+                      </h3>
+                      {pendingSends.map(req => (
+                        <div key={req.id} className="bg-white border-2 border-amber-200 rounded-2xl p-4 space-y-3">
+                          <div className="flex items-start justify-between gap-3">
+                            <div className="flex items-center gap-3">
+                              <div className="w-10 h-10 rounded-xl bg-emerald-100 flex items-center justify-center shrink-0">
+                                <ArrowDownLeft className="h-5 w-5 text-emerald-600" />
+                              </div>
+                              <div>
+                                <p className="text-sm font-bold text-gray-900">
+                                  {req.seller_business_name || req.seller_full_name || 'A merchant'}
+                                </p>
+                                <p className="text-xs text-gray-500">{req.service_description}</p>
+                              </div>
+                            </div>
+                            <div className="text-right shrink-0">
+                              <p className="text-lg font-black text-emerald-700">${req.total_amount.toFixed(2)}</p>
+                              <p className="text-[10px] text-gray-400">credits</p>
+                            </div>
+                          </div>
+                          <div className="flex gap-2">
+                            <button
+                              disabled={processingId === req.id}
+                              onClick={async () => {
+                                setProcessingId(req.id);
+                                try {
+                                  await acceptSendRequest(req.id, req.seller_id, req.total_amount, req.service_description);
+                                } finally {
+                                  setProcessingId(null);
+                                }
+                              }}
+                              className="flex-1 flex items-center justify-center gap-2 py-2.5 rounded-xl bg-gradient-to-r from-emerald-500 to-teal-600 hover:from-emerald-600 hover:to-teal-700 text-white font-semibold text-sm transition-all disabled:opacity-50"
+                            >
+                              {processingId === req.id ? 'Processing...' : '✓ Accept & Receive'}
+                            </button>
+                            <button
+                              disabled={processingId === req.id}
+                              onClick={async () => {
+                                setProcessingId(req.id);
+                                try {
+                                  await rejectPaymentRequest(req.id);
+                                } finally {
+                                  setProcessingId(null);
+                                }
+                              }}
+                              className="flex-1 flex items-center justify-center gap-2 py-2.5 rounded-xl border-2 border-red-200 text-red-500 hover:bg-red-50 font-semibold text-sm transition-all disabled:opacity-50"
+                            >
+                              ✕ Reject
+                            </button>
+                          </div>
+                          <p className="text-[10px] text-gray-400 text-right">
+                            {formatDistanceToNow(new Date(req.created_at), { addSuffix: true })}
+                          </p>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+
+                  {/* ── History ── merged & sorted newest first ── */}
+                  <div className="space-y-2">
+                    <h3 className="text-sm font-bold text-gray-500 uppercase tracking-wide">History</h3>
+                    {!hasHistory ? (
+                      <div className="text-center py-10 text-gray-400">
+                        <Bell className="h-10 w-10 mx-auto mb-3 opacity-30" />
+                        <p className="text-sm">No barter activity yet</p>
+                      </div>
+                    ) : (
+                      [
+                        ...completedSends.map(r => ({ kind: 'received' as const, date: r.created_at, data: r })),
+                        ...mySentSends.map(r => ({ kind: 'sent' as const, date: r.created_at, data: r })),
+                      ]
+                        .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
+                        .map(item => {
+                          if (item.kind === 'received') {
+                            const req = item.data as typeof completedSends[0];
+                            return (
+                              <div key={`r-${req.id}`} className="flex items-center justify-between gap-3 p-4 rounded-xl border border-gray-100 bg-white">
+                                <div className="flex items-center gap-3 min-w-0">
+                                  <div className={`shrink-0 w-9 h-9 rounded-full flex items-center justify-center ${req.status === 'paid' ? 'bg-emerald-100' : 'bg-red-50'}`}>
+                                    <ArrowDownLeft className={`h-4 w-4 ${req.status === 'paid' ? 'text-emerald-600' : 'text-red-400'}`} />
+                                  </div>
+                                  <div className="min-w-0">
+                                    <p className="text-xs text-gray-400 mb-0.5">Received from</p>
+                                    <p className="text-sm font-semibold text-gray-900 truncate">{req.seller_business_name || req.seller_full_name || 'A merchant'}</p>
+                                    <p className="text-xs text-gray-400 truncate">{req.service_description}</p>
+                                    <p className="text-[10px] text-gray-400 mt-0.5">{formatDistanceToNow(new Date(req.created_at), { addSuffix: true })}</p>
+                                  </div>
+                                </div>
+                                <div className="shrink-0 text-right space-y-1">
+                                  <p className={`text-sm font-bold ${req.status === 'paid' ? 'text-emerald-700' : 'text-gray-400'}`}>${req.total_amount.toFixed(2)}</p>
+                                  {statusBadge(req.status)}
+                                </div>
+                              </div>
+                            );
+                          }
+                          if (item.kind === 'sent') {
+                            const req = item.data as typeof mySentSends[0];
+                            return (
+                              <div key={`s-${req.id}`} className="flex items-center justify-between gap-3 p-4 rounded-xl border border-gray-100 bg-white">
+                                <div className="flex items-center gap-3 min-w-0">
+                                  <div className={`shrink-0 w-9 h-9 rounded-full flex items-center justify-center ${req.status === 'paid' ? 'bg-emerald-100' : req.status === 'rejected' ? 'bg-red-50' : 'bg-amber-50'}`}>
+                                    <ArrowUpRight className={`h-4 w-4 ${req.status === 'paid' ? 'text-emerald-600' : req.status === 'rejected' ? 'text-red-400' : 'text-amber-500'}`} />
+                                  </div>
+                                  <div className="min-w-0">
+                                    <p className="text-xs text-gray-400 mb-0.5">Sent to</p>
+                                    <p className="text-sm font-semibold text-gray-900 truncate">{req.buyer_business_name || req.buyer_full_name || 'A merchant'}</p>
+                                    <p className="text-xs text-gray-400 truncate">{req.service_description}</p>
+                                    <p className="text-[10px] text-gray-400 mt-0.5">{formatDistanceToNow(new Date(req.created_at), { addSuffix: true })}</p>
+                                  </div>
+                                </div>
+                                <div className="shrink-0 text-right space-y-1">
+                                  <p className={`text-sm font-bold ${req.status === 'paid' ? 'text-emerald-700' : 'text-gray-500'}`}>${req.total_amount.toFixed(2)}</p>
+                                  {statusBadge(req.status, true)}
+                                </div>
+                              </div>
+                            );
+                          }
+                          return null;
+                        })
+                    )}
+                  </div>
+                </div>
+              );
+            })()}
           </div>
         )}
 

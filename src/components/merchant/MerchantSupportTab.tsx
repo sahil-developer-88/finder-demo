@@ -38,7 +38,7 @@ const MerchantSupportTab = () => {
     <div className="space-y-4">
       <div>
         <h2 className="text-lg font-bold text-gray-900">Contact Support</h2>
-        <p className="text-sm text-gray-500 mt-0.5">Send a message to the SwapShop support team</p>
+        <p className="text-sm text-gray-500 mt-0.5">Send a message to the Valuehub Exchange support team</p>
       </div>
       <InboxSection
         variant="embedded"

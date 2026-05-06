@@ -35,6 +35,7 @@ const DisputesSection = ({
 }) => {
   const { user } = useAuth();
   const [dispPage,  setDispPage]  = useState(1); const [dispSearch,  setDispSearch]  = useState(''); const [dispSort, setDispSort] = useState<'date-desc' | 'date-asc' | 'status' | 'type' | 'reporter' | 'reported'>('date-desc');
+  const [dispStatusFilter, setDispStatusFilter] = useState<'all' | 'open' | 'under_review' | 'resolved' | 'escalated'>('all');
   const [evPage,    setEvPage]    = useState(1); const [evSearch,    setEvSearch]    = useState(''); const [evSort, setEvSort] = useState<'date-desc' | 'date-asc' | 'uploader' | 'type' | 'file'>('date-desc');
   const [offPage,   setOffPage]   = useState(1);
   const [offSearch, setOffSearch] = useState('');
@@ -118,6 +119,7 @@ const DisputesSection = ({
   };
 
   const filteredDisputes = disputes.filter(d => {
+    if (dispStatusFilter !== 'all' && d.status !== dispStatusFilter) return false;
     if (!dispSearch) return true;
     const q = dispSearch.toLowerCase();
     return d.reporterName?.toLowerCase().includes(q) || d.reportedName?.toLowerCase().includes(q) || d.dispute_type?.includes(q) || d.description?.toLowerCase().includes(q);
@@ -163,10 +165,14 @@ const DisputesSection = ({
       </div>
 
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-        <StatCard icon={Flag}          label="Open"         value={disputes.filter(d => d.status === 'open').length}         color="red"    />
-        <StatCard icon={Clock}         label="Under Review" value={disputes.filter(d => d.status === 'under_review').length} color="amber"  />
-        <StatCard icon={CheckCircle}   label="Resolved"     value={disputes.filter(d => d.status === 'resolved').length}     color="emerald"/>
-        <StatCard icon={AlertTriangle} label="Escalated"    value={disputes.filter(d => d.status === 'escalated').length}    color="purple" />
+        <StatCard icon={Flag}          label="Open"         value={disputes.filter(d => d.status === 'open').length}         color="red"
+          onClick={() => { setSub('Open Disputes'); setDispStatusFilter(f => f === 'open'         ? 'all' : 'open');         setDispPage(1); }} />
+        <StatCard icon={Clock}         label="Under Review" value={disputes.filter(d => d.status === 'under_review').length} color="amber"
+          onClick={() => { setSub('Open Disputes'); setDispStatusFilter(f => f === 'under_review' ? 'all' : 'under_review'); setDispPage(1); }} />
+        <StatCard icon={CheckCircle}   label="Resolved"     value={disputes.filter(d => d.status === 'resolved').length}     color="emerald"
+          onClick={() => { setSub('Open Disputes'); setDispStatusFilter(f => f === 'resolved'     ? 'all' : 'resolved');     setDispPage(1); }} />
+        <StatCard icon={AlertTriangle} label="Escalated"    value={disputes.filter(d => d.status === 'escalated').length}    color="purple"
+          onClick={() => { setSub('Open Disputes'); setDispStatusFilter(f => f === 'escalated'    ? 'all' : 'escalated');    setDispPage(1); }} />
       </div>
 
       <div className="flex gap-1 border-b">
@@ -326,18 +332,20 @@ const DisputesSection = ({
       {sub === 'Repeat Offenders' && (
         <div className="space-y-5">
           <div className="grid grid-cols-2 gap-4">
-            <div className="bg-red-50 border border-red-200 rounded-xl p-4">
+            <div className="bg-red-50 border border-red-200 rounded-xl p-4 cursor-pointer hover:shadow-md transition-shadow"
+              onClick={() => setTimeout(() => document.getElementById('offenders-table')?.scrollIntoView({ behavior: 'smooth', block: 'start' }), 80)}>
               <p className="text-sm font-semibold text-red-800">Repeat Offenders</p>
               <p className="text-3xl font-bold text-red-600 mt-1">{repeatOffenders.length}</p>
               <p className="text-xs text-red-600 mt-0.5">Users reported in 2+ disputes</p>
             </div>
-            <div className="bg-amber-50 border border-amber-200 rounded-xl p-4">
+            <div className="bg-amber-50 border border-amber-200 rounded-xl p-4 cursor-pointer hover:shadow-md transition-shadow"
+              onClick={() => setTimeout(() => document.getElementById('offenders-table')?.scrollIntoView({ behavior: 'smooth', block: 'start' }), 80)}>
               <p className="text-sm font-semibold text-amber-800">With Open Cases</p>
               <p className="text-3xl font-bold text-amber-600 mt-1">{repeatOffenders.filter(o => o.openCount > 0).length}</p>
               <p className="text-xs text-amber-600 mt-0.5">Currently active disputes</p>
             </div>
           </div>
-          <Card className="border-0 shadow-sm">
+          <Card id="offenders-table" className="border-0 shadow-sm">
             <div className="flex items-center justify-between px-4 py-3 border-b gap-3">
               <SHSearch value={offSearch} onChange={v => { setOffSearch(v); setOffPage(1); }} placeholder="Search user…" />
               {offSearch && <span className="text-xs text-gray-400 shrink-0">{repeatOffenders.filter(o => o.name?.toLowerCase().includes(offSearch.toLowerCase())).length} of {repeatOffenders.length}</span>}

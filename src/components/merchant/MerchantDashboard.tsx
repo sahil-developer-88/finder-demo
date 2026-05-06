@@ -1,5 +1,6 @@
 
 import { useState, useEffect, useMemo, useRef } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import BackButton from '@/components/ui/BackButton';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -139,6 +140,8 @@ const Pill = ({ status }: { status: string }) => {
     shopify:    'bg-green-100 text-green-700',
     square:     'bg-blue-100 text-blue-700',
     clover:     'bg-orange-100 text-orange-700',
+    toast:      'bg-red-100 text-red-700',
+    adyen:      'bg-cyan-100 text-cyan-700',
   };
   return (
     <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${map[status.toLowerCase()] || 'bg-gray-100 text-gray-600'}`}>
@@ -316,7 +319,8 @@ const MerchantDashboard = ({ embedded = false, externalSub }: { embedded?: boole
 
   const handleDismissReminder = async () => {
     if (!user) return;
-    await supabase.from('profiles').update({ pos_setup_preference: 'not_needed' }).eq('user_id', user.id);
+    const { error } = await supabase.from('profiles').update({ pos_setup_preference: 'not_needed' }).eq('user_id', user.id);
+    if (error) { toast({ title: 'Failed to dismiss reminder', description: error.message, variant: 'destructive' }); return; }
     setShowPOSReminder(false);
     setPosSetupPreference('not_needed');
     toast({ title: 'Reminder dismissed', description: 'You can still connect your POS anytime from Integrations.' });

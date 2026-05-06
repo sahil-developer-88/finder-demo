@@ -380,7 +380,7 @@ const Index = () => {
                   <>
                     <div className="text-4xl mb-3">🌱</div>
                     <h3 className="text-lg font-semibold text-gray-700 mb-1">This spot is wide open!</h3>
-                    <p className="text-sm text-gray-400">No businesses have joined this category yet — be the first to get discovered on SwapShop!</p>
+                    <p className="text-sm text-gray-400">No businesses have joined this category yet — be the first to get discovered on Valuehub Exchange!</p>
                   </>
                 )}
               </div>

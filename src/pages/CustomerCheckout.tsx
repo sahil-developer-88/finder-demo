@@ -278,7 +278,7 @@ const CustomerCheckout = () => {
         >
           ← Back to store
         </button>
-        <h1 className="text-lg font-bold text-gray-900 mx-auto">SwapShop</h1>
+        <h1 className="text-lg font-bold text-gray-900 mx-auto">Valuehub Exchange</h1>
         <div className="w-24" /> {/* spacer */}
       </div>
 

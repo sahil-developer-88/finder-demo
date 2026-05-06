@@ -80,6 +80,35 @@ const registerShopifyWebhook = async (shopDomain: string, accessToken: string): 
 };
 
 /**
+ * Register webhook with Toast using Management API
+ * Docs: https://doc.toasttab.com/doc/devguide/webhooks.html
+ */
+const registerToastWebhook = async (restaurantGuid: string, accessToken: string): Promise<void> => {
+  const webhookUrl = `${Deno.env.get('SUPABASE_URL')}/functions/v1/pos-webhook?provider=toast`;
+
+  const response = await fetch('https://ws-api.toasttab.com/config/v2/webhookSubscriptions', {
+    method: 'POST',
+    headers: {
+      'Authorization': `Bearer ${accessToken}`,
+      'Toast-Restaurant-External-ID': restaurantGuid,
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify({
+      notificationEndpointUri: webhookUrl,
+      eventTypes: ['CHECK_CREATED', 'CHECK_UPDATED'],
+    }),
+  });
+
+  if (!response.ok) {
+    const errText = await response.text();
+    console.error('Failed to register Toast webhook:', errText);
+    throw new Error(`Toast webhook registration failed: ${response.status}`);
+  }
+
+  console.log('✅ Toast webhook registered');
+};
+
+/**
  * Register Square catalog webhook subscription
  * Subscribes to catalog.version.updated so product changes auto-sync
  */
@@ -238,6 +267,12 @@ const exchangeCodeForToken = async (
       tokenUrl = 'https://my.ecwid.com/api/oauth/token';
       clientId = Deno.env.get('ECWID_CLIENT_ID') || '';
       clientSecret = Deno.env.get('ECWID_CLIENT_SECRET') || '';
+      break;
+
+    case 'toast':
+      tokenUrl = 'https://ws-api.toasttab.com/authentication/v1/authentication/token';
+      clientId = Deno.env.get('TOAST_CLIENT_ID') || '';
+      clientSecret = Deno.env.get('TOAST_CLIENT_SECRET') || '';
       break;
 
     default:
@@ -552,6 +587,39 @@ const getMerchantInfo = async (provider: string, accessToken: string, clientId?:
         break;
       }
 
+      case 'toast': {
+        // Toast returns restaurantGuid in the callback URL
+        if (tokenMerchantId) {
+          storeId = tokenMerchantId; // restaurantGuid passed as tokenMerchantId
+          merchantId = tokenMerchantId;
+          console.log(`✅ Toast restaurant GUID from callback: ${storeId}`);
+        }
+
+        // Fetch restaurant info to confirm the token works
+        try {
+          const restaurantResponse = await fetch(
+            `https://ws-api.toasttab.com/restaurants/v1/restaurants/${storeId}`,
+            {
+              headers: {
+                'Authorization': `Bearer ${accessToken}`,
+                'Toast-Restaurant-External-ID': storeId,
+              },
+            }
+          );
+
+          if (restaurantResponse.ok) {
+            const restaurantData = await restaurantResponse.json();
+            businessName = restaurantData.name || '';
+            console.log(`✅ Toast restaurant: ${businessName} (${storeId})`);
+          } else {
+            console.warn(`⚠️ Could not fetch Toast restaurant info: ${restaurantResponse.status}`);
+          }
+        } catch (toastErr: any) {
+          console.warn(`⚠️ Toast restaurant info fetch failed (non-fatal): ${toastErr.message}`);
+        }
+        break;
+      }
+
       case 'lightspeed': {
         console.log(`💡 Processing Lightspeed integration...`);
         console.log(`💡 Shop name/domain: ${shopName || 'NOT PROVIDED'}`);
@@ -593,6 +661,7 @@ serve(async (req) => {
     const domainPrefix = url.searchParams.get('domain_prefix'); // Lightspeed domain prefix
     const cloverMerchantId = url.searchParams.get('merchant_id'); // Clover merchant ID from callback
     const cloverEmployeeId = url.searchParams.get('employee_id'); // Clover employee ID from callback
+    const toastRestaurantGuid = url.searchParams.get('restaurantGuid'); // Toast restaurant GUID from callback
     const error = url.searchParams.get('error');
 
     console.log('📥 Callback URL params:', {
@@ -672,12 +741,14 @@ serve(async (req) => {
 
     // Get merchant/location info
     const clientId = provider === 'square' ? Deno.env.get('SQUARE_OAUTH_CLIENT_ID') : undefined;
+    // For Clover, merchant_id comes as URL param; for Toast, restaurantGuid comes as URL param
+    const callbackMerchantId = cloverMerchantId || toastRestaurantGuid || undefined;
     const { merchantId, locationId, storeId, capabilities, locationStatus, businessName } = await getMerchantInfo(
-      exchangeProvider, // use ecwid provider key for ecwid
+      exchangeProvider,
       tokenData.access_token,
       clientId,
       shopNameToUse || undefined,
-      cloverMerchantId || undefined // Pass Clover merchant_id from callback URL
+      callbackMerchantId
     );
 
     // Build config object based on provider
@@ -874,6 +945,17 @@ serve(async (req) => {
         console.log(`✅ Ecwid webhooks registered for store: ${resolvedEcwidStoreId}`);
       } catch (webhookError) {
         console.error('⚠️ Warning: Failed to register Ecwid webhooks:', webhookError);
+        // Don't fail the entire OAuth flow if webhook registration fails
+      }
+    }
+
+    // Register webhooks for Toast
+    if (provider.toLowerCase() === 'toast' && storeId) {
+      try {
+        await registerToastWebhook(storeId, tokenData.access_token);
+        console.log(`✅ Toast webhook registered for restaurant: ${storeId}`);
+      } catch (webhookError) {
+        console.error('⚠️ Warning: Failed to register Toast webhook:', webhookError);
         // Don't fail the entire OAuth flow if webhook registration fails
       }
     }

@@ -142,12 +142,15 @@ const SuspendedTab = ({
       )}
 
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-        <StatCard icon={Ban}           label="Suspended (90d+)"    value={suspendedAccounts.length}                                                                                     color="red"   />
-        <StatCard icon={AlertTriangle} label="Total Exposure"       value={`$${suspendedAccounts.reduce((s: number, a: any) => s + Math.abs(a.balance), 0).toLocaleString()}`}           color="amber" />
-        <StatCard icon={DollarSign}    label="Avg Negative Balance" value={suspendedAccounts.length ? `$${Math.round(suspendedAccounts.reduce((s: number, a: any) => s + Math.abs(a.balance), 0) / suspendedAccounts.length).toLocaleString()}` : '$0'} color="rose" />
+        <StatCard icon={Ban}           label="Suspended (90d+)"    value={suspendedAccounts.length}                                                                                     color="red"
+          onClick={() => setTimeout(() => document.getElementById('susp-table')?.scrollIntoView({ behavior: 'smooth', block: 'start' }), 80)} />
+        <StatCard icon={AlertTriangle} label="Total Exposure"       value={`$${suspendedAccounts.reduce((s: number, a: any) => s + Math.abs(a.balance), 0).toLocaleString()}`}           color="amber"
+          onClick={() => { setSuspSort('balance-desc'); setTimeout(() => document.getElementById('susp-table')?.scrollIntoView({ behavior: 'smooth', block: 'start' }), 80); }} />
+        <StatCard icon={DollarSign}    label="Avg Negative Balance" value={suspendedAccounts.length ? `$${Math.round(suspendedAccounts.reduce((s: number, a: any) => s + Math.abs(a.balance), 0) / suspendedAccounts.length).toLocaleString()}` : '$0'} color="rose"
+          onClick={() => setTimeout(() => document.getElementById('susp-table')?.scrollIntoView({ behavior: 'smooth', block: 'start' }), 80)} />
       </div>
 
-      <Card className="border-0 shadow-sm">
+      <Card id="susp-table" className="border-0 shadow-sm">
         <div className="flex items-center gap-3 px-4 py-3 border-b flex-wrap">
           <SHSearch value={suspSearch} onChange={v => { setSuspSearch(v); setPage(1); }} placeholder="Search business…" />
           <select
@@ -397,16 +400,21 @@ const CreditsSection = ({ sub, setSub, memberCredits: realCredits, memberCredits
         <div className="space-y-6">
           {/* KPI Row */}
           <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
-            <StatCard icon={DollarSign}   label="Total Issued"      value={`$${totalIssued.toLocaleString()}`}         color="emerald" trend={14} />
-            <StatCard icon={CreditCard}   label="Outstanding"       value={`$${totalOutstanding.toLocaleString()}`}    color="blue"              />
-            <StatCard icon={AlertTriangle}label="Negative Balances" value={`$${Math.abs(totalNegative).toLocaleString()}`} color="red"           />
-            <StatCard icon={BarChart2}    label="Net Exposure"      value={`$${netExposure.toLocaleString()}`}          color="amber"             />
-            <StatCard icon={TrendingUp}   label="Monthly Growth"    value={(() => { const last = monthlyData.at(-1)?.credits ?? 0; const prev = monthlyData.at(-2)?.credits ?? 0; return prev > 0 ? `${last >= prev ? '+' : ''}${(((last - prev) / prev) * 100).toFixed(0)}%` : '—'; })()} color="purple" />
+            <StatCard icon={DollarSign}   label="Total Issued"      value={`$${totalIssued.toLocaleString()}`}         color="emerald" trend={14}
+              onClick={() => setSub('Member Balances')} />
+            <StatCard icon={CreditCard}   label="Outstanding"       value={`$${totalOutstanding.toLocaleString()}`}    color="blue"
+              onClick={() => { setSub('Member Balances'); setTimeout(() => document.getElementById('cl-positive')?.scrollIntoView({ behavior: 'smooth', block: 'start' }), 80); }} />
+            <StatCard icon={AlertTriangle}label="Negative Balances" value={`$${Math.abs(totalNegative).toLocaleString()}`} color="red"
+              onClick={() => setSub('Aging & Risk')} />
+            <StatCard icon={BarChart2}    label="Net Exposure"      value={`$${netExposure.toLocaleString()}`}          color="amber"
+              onClick={() => setSub('Aging & Risk')} />
+            <StatCard icon={TrendingUp}   label="Monthly Growth"    value={(() => { const last = monthlyData.at(-1)?.credits ?? 0; const prev = monthlyData.at(-2)?.credits ?? 0; return prev > 0 ? `${last >= prev ? '+' : ''}${(((last - prev) / prev) * 100).toFixed(0)}%` : '—'; })()} color="purple"
+              onClick={() => setTimeout(() => document.getElementById('cl-chart')?.scrollIntoView({ behavior: 'smooth', block: 'start' }), 80)} />
           </div>
 
           {/* Charts */}
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-            <Card className="border-0 shadow-sm">
+            <Card id="cl-chart" className="border-0 shadow-sm">
               <CardHeader className="pb-2"><CardTitle className="text-base">Credit Issuance Over Time</CardTitle></CardHeader>
               <CardContent>
                 <div className="h-52">
@@ -493,7 +501,7 @@ const CreditsSection = ({ sub, setSub, memberCredits: realCredits, memberCredits
         </div>
       )}
       {sub === 'Member Balances' && !memberCreditsLoading && (
-        <div className="space-y-3">
+        <div id="cl-positive" className="space-y-3">
         <div className="flex justify-end">
           <Button variant="outline" size="sm" className="text-xs" onClick={() => {
             const hdr = ['Business', 'Status', 'Balance ($)', 'Credit Limit ($)', 'Available Credit ($)', 'Total Earned ($)'];
@@ -1516,7 +1524,8 @@ const CreditsSection = ({ sub, setSub, memberCredits: realCredits, memberCredits
 
             {/* Platform totals */}
             <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-              <Card className="border-0 shadow-sm bg-gradient-to-br from-emerald-500 to-teal-600">
+              <Card className="border-0 shadow-sm bg-gradient-to-br from-emerald-500 to-teal-600 cursor-pointer hover:opacity-90 transition-opacity"
+                onClick={() => setPlEntryFilter('credit')}>
                 <CardContent className="p-5">
                   <div className="flex items-center gap-2 mb-1">
                     <DollarSign className="h-4 w-4 text-white/70" />
@@ -1525,7 +1534,8 @@ const CreditsSection = ({ sub, setSub, memberCredits: realCredits, memberCredits
                   <p className="text-2xl font-black text-white">${totalCashIn.toFixed(2)}</p>
                 </CardContent>
               </Card>
-              <Card className="border-0 shadow-sm bg-gradient-to-br from-indigo-500 to-violet-600">
+              <Card className="border-0 shadow-sm bg-gradient-to-br from-indigo-500 to-violet-600 cursor-pointer hover:opacity-90 transition-opacity"
+                onClick={() => setPlEntryFilter('credit')}>
                 <CardContent className="p-5">
                   <div className="flex items-center gap-2 mb-1">
                     <Coins className="h-4 w-4 text-white/70" />
@@ -1534,7 +1544,8 @@ const CreditsSection = ({ sub, setSub, memberCredits: realCredits, memberCredits
                   <p className="text-2xl font-black text-white">{totalBarterIn.toLocaleString()} pts</p>
                 </CardContent>
               </Card>
-              <Card className="border-0 shadow-sm">
+              <Card className="border-0 shadow-sm cursor-pointer hover:shadow-md transition-shadow"
+                onClick={() => setPlEntryFilter('debit')}>
                 <CardContent className="p-5 flex items-center gap-3">
                   <div className="p-2 rounded-xl bg-rose-50 shrink-0">
                     <ArrowUpRight className="h-4 w-4 text-rose-500" />
@@ -1546,7 +1557,8 @@ const CreditsSection = ({ sub, setSub, memberCredits: realCredits, memberCredits
                   </div>
                 </CardContent>
               </Card>
-              <Card className="border-0 shadow-sm">
+              <Card className="border-0 shadow-sm cursor-pointer hover:shadow-md transition-shadow"
+                onClick={() => { setPlEntryFilter('all'); setPlSourceFilter('all'); setPlUserFilter(''); setPlDateFrom(''); setPlDateTo(''); }}>
                 <CardContent className="p-5 flex items-center gap-3">
                   <div className="p-2 rounded-xl bg-indigo-50 shrink-0">
                     <BookOpen className="h-4 w-4 text-indigo-500" />

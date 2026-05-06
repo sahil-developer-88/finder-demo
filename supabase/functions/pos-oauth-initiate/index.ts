@@ -89,6 +89,20 @@ const getOAuthConfig = (provider: string): OAuthConfig | null => {
       };
     }
 
+    case 'toast':
+      return {
+        authUrl: 'https://www.toasttab.com/api/1.0/login/oauth/authorize',
+        clientId: Deno.env.get('TOAST_CLIENT_ID') || '',
+        redirectUri: baseRedirectUri,
+        scopes: [
+          'orders.read',
+          'orders.write',
+          'menus.read',
+          'payments.read',
+          'restaurant.read',
+        ]
+      };
+
     case 'lightspeed':
       return {
         authUrl: 'https://secure.retail.lightspeed.app/connect',
@@ -181,7 +195,12 @@ serve(async (req) => {
     // Admin connecting on behalf of a merchant → save under merchant's user_id
     const integrationUserId = targetUserId || user.id;
 
-    const { error: stateError } = await supabase
+    // When targetUserId differs from auth user (admin flow), use service role to bypass RLS
+    const insertClient = targetUserId && targetUserId !== user.id
+      ? createClient(Deno.env.get('SUPABASE_URL') ?? '', Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? '')
+      : supabase;
+
+    const { error: stateError } = await insertClient
       .from('oauth_states')
       .insert({
         user_id: integrationUserId,

@@ -155,6 +155,7 @@ const GrowthSection = ({ sub, data, loading }: { sub: string; data: any; loading
   const [chSort, setChSort]                   = useState<'outstanding-desc' | 'outstanding-asc' | 'earned-desc' | 'spent-desc' | 'utilization-desc' | 'status' | 'name'>('outstanding-desc');
   const [chSearch, setChSearch]               = useState('');
   const [chPage, setChPage]                   = useState(1);
+  const [expandedMonth, setExpandedMonth]     = useState<string | null>(null);
 
   if (loading) return (
     <div className="flex items-center justify-center py-24">
@@ -172,7 +173,13 @@ const GrowthSection = ({ sub, data, loading }: { sub: string; data: any; loading
     { label: 'POS Active',   value: funnel.posConnected,  color: 'bg-amber-500',   pct: funnel.toPOS,       users: funnel.posActiveUsers  || [] },
   ];
 
-  const drillUsers = funnelStages.find(s => s.label === drillStage)?.users || [];
+  const kpiUserMap: Record<string, any[]> = {
+    'Pending Onboarding': funnel.pendingOnboardingUsers || [],
+    'W-9 Incomplete':     funnel.w9IncompleteUsers      || [],
+    'No POS Connected':   funnel.posNotConnectedUsers   || [],
+    'Churned (90d)':      funnel.churnedUsers           || [],
+  };
+  const drillUsers = funnelStages.find(s => s.label === drillStage)?.users || kpiUserMap[drillStage ?? ''] || [];
 
   return (
     <div className="space-y-6">
@@ -190,10 +197,14 @@ const GrowthSection = ({ sub, data, loading }: { sub: string; data: any; loading
         <div className="space-y-6">
           {/* KPI row */}
           <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-            <StatCard icon={Clock}        label="Pending Onboarding" value={funnel.pendingOnboarding} color="amber"   />
-            <StatCard icon={FileText}     label="W-9 Incomplete"     value={funnel.w9Incomplete}      color="red"     />
-            <StatCard icon={AlertCircle}  label="No POS Connected"   value={funnel.posNotConnected}   color="rose"    />
-            <StatCard icon={TrendingUp}   label="Churn Rate (90d)"   value={`${funnel.churnRate}%`}   color="indigo"  sub={`${funnel.churned} businesses inactive`} />
+            <StatCard icon={Clock}       label="Pending Onboarding" value={funnel.pendingOnboarding} color="amber"
+              onClick={() => setDrillStage('Pending Onboarding')} />
+            <StatCard icon={FileText}    label="W-9 Incomplete"     value={funnel.w9Incomplete}      color="red"
+              onClick={() => setDrillStage('W-9 Incomplete')} />
+            <StatCard icon={AlertCircle} label="No POS Connected"   value={funnel.posNotConnected}   color="rose"
+              onClick={() => setDrillStage('No POS Connected')} />
+            <StatCard icon={TrendingUp}  label="Churn Rate (90d)"   value={`${funnel.churnRate}%`}   color="indigo"  sub={`${funnel.churned} businesses inactive`}
+              onClick={() => setDrillStage('Churned (90d)')} />
           </div>
 
           {/* Funnel bars */}
@@ -263,64 +274,129 @@ const GrowthSection = ({ sub, data, loading }: { sub: string; data: any; loading
       )}
 
       {/* ── Monthly Active ── */}
-      {sub === 'Monthly Active' && (
-        <div className="space-y-6">
-          <Card className="border-0 shadow-sm">
-            <CardHeader className="pb-2"><CardTitle className="text-base">Active Merchants vs New Signups (Last 12 Months)</CardTitle></CardHeader>
-            <CardContent>
-              {monthlyActive.length === 0 ? (
-                <p className="text-sm text-gray-400 text-center py-12">No transaction data available.</p>
-              ) : (
-                <div className="h-72">
-                  <ResponsiveContainer width="100%" height="100%">
-                    <BarChart data={monthlyActive}>
-                      <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
-                      <XAxis dataKey="month" tick={{ fontSize: 11 }} />
-                      <YAxis tick={{ fontSize: 11 }} allowDecimals={false} />
-                      <Tooltip />
-                      <Bar dataKey="active"  name="Active Merchants" fill="#10b981" radius={[4,4,0,0]} />
-                      <Bar dataKey="signups" name="New Signups"       fill="#6366f1" radius={[4,4,0,0]} />
-                    </BarChart>
-                  </ResponsiveContainer>
-                </div>
-              )}
-            </CardContent>
-          </Card>
+      {sub === 'Monthly Active' && (() => {
+        const activeRows = [...monthlyActive].reverse().filter((m: any) => m.active > 0);
+        return (
+          <div className="space-y-6">
+            <Card className="border-0 shadow-sm">
+              <CardHeader className="pb-2"><CardTitle className="text-base">Active Merchants vs New Signups (Last 12 Months)</CardTitle></CardHeader>
+              <CardContent>
+                {monthlyActive.length === 0 ? (
+                  <p className="text-sm text-gray-400 text-center py-12">No transaction data available.</p>
+                ) : (
+                  <div className="h-72">
+                    <ResponsiveContainer width="100%" height="100%">
+                      <BarChart data={monthlyActive}>
+                        <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
+                        <XAxis dataKey="month" tick={{ fontSize: 11 }} />
+                        <YAxis tick={{ fontSize: 11 }} allowDecimals={false} />
+                        <Tooltip />
+                        <Bar dataKey="active"  name="Active Merchants" fill="#10b981" radius={[4,4,0,0]} />
+                        <Bar dataKey="signups" name="New Signups"       fill="#6366f1" radius={[4,4,0,0]} />
+                      </BarChart>
+                    </ResponsiveContainer>
+                  </div>
+                )}
+              </CardContent>
+            </Card>
 
-          <Card className="border-0 shadow-sm">
-            <CardHeader className="pb-2"><CardTitle className="text-base">Monthly Breakdown</CardTitle></CardHeader>
-            <CardContent className="p-0 overflow-x-auto">
-              <table className="w-full min-w-[500px]">
-                <thead className="border-y bg-gray-50">
-                  <tr><TH>Month</TH><TH right>Active Merchants</TH><TH right>New Signups</TH><TH right>Growth</TH></tr>
-                </thead>
-                <tbody className="divide-y">
-                  {monthlyActive.length === 0 ? (
-                    <tr><td colSpan={4} className="px-4 py-10 text-center text-sm text-gray-400">No data</td></tr>
-                  ) : [...monthlyActive].reverse().map((m: any, i: number) => {
-                    const prev = [...monthlyActive].reverse()[i + 1];
-                    const growth = prev && prev.active > 0 ? Math.round(((m.active - prev.active) / prev.active) * 100) : null;
-                    return (
-                      <tr key={m.month} className="hover:bg-gray-50">
-                        <TD><span className="font-medium">{m.month}</span></TD>
-                        <TD right>{m.active}</TD>
-                        <TD right>{m.signups}</TD>
-                        <TD right>
-                          {growth === null ? <span className="text-gray-300">—</span> : (
-                            <span className={`font-semibold ${growth >= 0 ? 'text-emerald-600' : 'text-red-500'}`}>
-                              {growth >= 0 ? '+' : ''}{growth}%
-                            </span>
+            <Card className="border-0 shadow-sm">
+              <CardHeader className="pb-2"><CardTitle className="text-base">Monthly Breakdown <span className="text-xs font-normal text-gray-400 ml-1">— click a row to see details</span></CardTitle></CardHeader>
+              <CardContent className="p-0 overflow-x-auto">
+                <table className="w-full min-w-[500px]">
+                  <thead className="border-y bg-gray-50">
+                    <tr><TH>Month</TH><TH right>Active Merchants</TH><TH right>New Signups</TH><TH right>Growth</TH></tr>
+                  </thead>
+                  <tbody className="divide-y">
+                    {activeRows.length === 0 ? (
+                      <tr><td colSpan={4} className="px-4 py-10 text-center text-sm text-gray-400">No data</td></tr>
+                    ) : activeRows.map((m: any, i: number) => {
+                      const prev   = activeRows[i + 1];
+                      const growth = prev && prev.active > 0 ? Math.round(((m.active - prev.active) / prev.active) * 100) : null;
+                      const open   = expandedMonth === m.month;
+                      return (
+                        <React.Fragment key={m.month}>
+                          <tr
+                            className="hover:bg-emerald-50 cursor-pointer transition-colors"
+                            onClick={() => setExpandedMonth(open ? null : m.month)}
+                          >
+                            <TD>
+                              <span className="flex items-center gap-1.5 font-medium">
+                                <ChevronRight className={`h-3.5 w-3.5 text-gray-400 transition-transform ${open ? 'rotate-90' : ''}`} />
+                                {m.month}
+                              </span>
+                            </TD>
+                            <TD right><span className="font-semibold text-emerald-700">{m.active}</span></TD>
+                            <TD right><span className="font-semibold text-indigo-600">{m.signups}</span></TD>
+                            <TD right>
+                              {growth === null ? <span className="text-gray-300">—</span> : (
+                                <span className={`font-semibold ${growth >= 0 ? 'text-emerald-600' : 'text-red-500'}`}>
+                                  {growth >= 0 ? '+' : ''}{growth}%
+                                </span>
+                              )}
+                            </TD>
+                          </tr>
+                          {open && (
+                            <tr className="bg-gray-50">
+                              <td colSpan={4} className="px-5 py-4">
+                                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                                  {/* Active merchants */}
+                                  <div>
+                                    <p className="text-xs font-semibold text-emerald-700 uppercase tracking-wide mb-2">
+                                      Active Merchants ({m.activeList?.length ?? 0})
+                                    </p>
+                                    {m.activeList?.length === 0 ? (
+                                      <p className="text-xs text-gray-400">None</p>
+                                    ) : (
+                                      <div className="space-y-1 max-h-40 overflow-y-auto pr-1">
+                                        {m.activeList.map((u: any, idx: number) => (
+                                          <div key={idx} className="flex items-center gap-2 text-xs">
+                                            <div className="h-5 w-5 rounded-full bg-emerald-100 text-emerald-700 flex items-center justify-center font-bold text-[10px] shrink-0">
+                                              {u.name?.[0]?.toUpperCase() ?? '?'}
+                                            </div>
+                                            <span className="text-gray-800 truncate">{u.name}</span>
+                                          </div>
+                                        ))}
+                                      </div>
+                                    )}
+                                  </div>
+                                  {/* New signups */}
+                                  <div>
+                                    <p className="text-xs font-semibold text-indigo-600 uppercase tracking-wide mb-2">
+                                      New Signups ({m.signupList?.length ?? 0})
+                                    </p>
+                                    {m.signupList?.length === 0 ? (
+                                      <p className="text-xs text-gray-400">None</p>
+                                    ) : (
+                                      <div className="space-y-1 max-h-40 overflow-y-auto pr-1">
+                                        {m.signupList.map((u: any, idx: number) => (
+                                          <div key={idx} className="flex items-center gap-2 text-xs">
+                                            <div className="h-5 w-5 rounded-full bg-indigo-100 text-indigo-700 flex items-center justify-center font-bold text-[10px] shrink-0">
+                                              {u.name?.[0]?.toUpperCase() ?? '?'}
+                                            </div>
+                                            <div className="min-w-0">
+                                              <p className="text-gray-800 truncate font-medium">{u.name}</p>
+                                              <p className="text-gray-400 truncate">{u.email}</p>
+                                            </div>
+                                          </div>
+                                        ))}
+                                      </div>
+                                    )}
+                                  </div>
+                                </div>
+                              </td>
+                            </tr>
                           )}
-                        </TD>
-                      </tr>
-                    );
-                  })}
-                </tbody>
-              </table>
-            </CardContent>
-          </Card>
-        </div>
-      )}
+                        </React.Fragment>
+                      );
+                    })}
+                  </tbody>
+                </table>
+              </CardContent>
+            </Card>
+          </div>
+        );
+      })()}
 
       {/* ── Credits Health ── */}
       {sub === 'Credits Health' && (() => {

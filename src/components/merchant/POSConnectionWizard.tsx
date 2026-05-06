@@ -127,7 +127,7 @@ export function POSConnectionWizard({ open, onOpenChange, onSuccess, onBeforeOAu
     },
     toast: {
       name: 'Toast POS',
-      oauth: false,
+      oauth: true,
       docs: 'https://doc.toasttab.com/doc/devguide/webhooks.html'
     },
     lightspeed: {
@@ -552,6 +552,30 @@ export function POSConnectionWizard({ open, onOpenChange, onSuccess, onBeforeOAu
                             value={config.apiKey}
                             onChange={(e) => setConfig({ ...config, apiKey: e.target.value })}
                             placeholder="Clover access token"
+                          />
+                        </div>
+                      </>
+                    )}
+
+                    {config.provider === 'toast' && (
+                      <>
+                        <div>
+                          <Label htmlFor="restaurant-guid">Restaurant GUID</Label>
+                          <Input
+                            id="restaurant-guid"
+                            value={config.storeId}
+                            onChange={(e) => setConfig({ ...config, storeId: e.target.value })}
+                            placeholder="Your Toast restaurant GUID"
+                          />
+                        </div>
+                        <div>
+                          <Label htmlFor="access-token">Access Token</Label>
+                          <Input
+                            id="access-token"
+                            type="password"
+                            value={config.apiKey}
+                            onChange={(e) => setConfig({ ...config, apiKey: e.target.value })}
+                            placeholder="Toast access token"
                           />
                         </div>
                       </>

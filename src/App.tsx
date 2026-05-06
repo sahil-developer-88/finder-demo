@@ -60,9 +60,11 @@ const App = () => (
               </Layout>
             } />
             <Route path="/stores" element={
-              <Layout>
-                <Index />
-              </Layout>
+              <ProtectedRoute>
+                <Layout>
+                  <Index />
+                </Layout>
+              </ProtectedRoute>
             } />
             <Route path="/auth" element={
               <Layout showHeader={false} showFooter={false} showCart={false}>

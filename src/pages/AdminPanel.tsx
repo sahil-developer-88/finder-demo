@@ -1362,7 +1362,8 @@ const AdminPanel = () => {
     const fetchGrowth = async () => {
       setGrowthLoading(true);
 
-      const [profilesRes, taxRes, posRes, creditsRes, txRes] = await Promise.all([
+      const since1y = new Date(Date.now() - 365 * 24 * 60 * 60 * 1000).toISOString();
+      const [profilesRes, taxRes, posRes, creditsRes, txRes, barterRes] = await Promise.all([
         supabase.from('profiles').select('user_id, full_name, email, business_name, onboarding_completed, created_at'),
         supabase.from('tax_info').select('user_id'),
         supabase.from('pos_integrations').select('user_id, status').eq('status', 'active'),
@@ -1370,38 +1371,44 @@ const AdminPanel = () => {
         supabase.from('pos_transactions')
           .select('merchant_id, transaction_date, barter_amount')
           .eq('status', 'completed')
-          .gte('transaction_date', new Date(Date.now() - 365 * 24 * 60 * 60 * 1000).toISOString()),
+          .gte('transaction_date', since1y),
+        supabase.from('transactions')
+          .select('from_user_id, created_at')
+          .gte('created_at', since1y),
       ]);
 
-      const profiles   = profilesRes.data  || [];
-      const taxUsers   = new Set((taxRes.data  || []).map((t: any) => t.user_id));
-      const posUsers   = new Set((posRes.data  || []).map((p: any) => p.user_id));
-      const credits    = creditsRes.data   || [];
-      const txns       = txRes.data        || [];
+      const profiles      = profilesRes.data  || [];
+      const taxUsers      = new Set((taxRes.data  || []).map((t: any) => t.user_id));
+      const posUsers      = new Set((posRes.data  || []).map((p: any) => p.user_id));
+      const credits       = creditsRes.data   || [];
+      const txns          = txRes.data        || [];
+      const barterTxns    = barterRes.data    || [];
 
       // Fill missing emails from auth.users via RPC
       const { data: authEmailRows } = await supabase.rpc('get_user_emails' as any);
       const emailMap: Record<string, string> = {};
       (authEmailRows || []).forEach((r: any) => { if (r.email) emailMap[r.id] = r.email; });
 
-      // Funnel stages
-      const totalSignups  = profiles.length;
-      const onboarded     = profiles.filter((p: any) => p.onboarding_completed).length;
-      const w9Complete    = taxUsers.size;
-      const posConnected  = posUsers.size;
+      // Funnel — build user lists first so counts are always derived from lists
+      const totalSignups   = profiles.length;
+      const w9Complete     = taxUsers.size;
+      const posConnected   = posUsers.size;
 
-      // Per-stage user lists for drill-down
       const signedUpUsers  = profiles
         .map((p: any) => ({ user_id: p.user_id, full_name: p.full_name, email: p.email || emailMap[p.user_id] || '—', business_name: p.business_name, onboarding_completed: p.onboarding_completed, created_at: p.created_at, w9: taxUsers.has(p.user_id), pos: posUsers.has(p.user_id) }))
         .sort((a: any, b: any) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
-      const onboardedUsers = signedUpUsers.filter((p: any) => p.onboarding_completed);
-      const w9Users        = signedUpUsers.filter((p: any) => p.w9);
-      const posActiveUsers = signedUpUsers.filter((p: any) => p.pos);
+      const onboardedUsers          = signedUpUsers.filter((p: any) => p.onboarding_completed);
+      const w9Users                 = signedUpUsers.filter((p: any) => p.w9);
+      const posActiveUsers          = signedUpUsers.filter((p: any) => p.pos);
+      const pendingOnboardingUsers  = signedUpUsers.filter((p: any) => !p.onboarding_completed);
+      const w9IncompleteUsers       = onboardedUsers.filter((p: any) => !p.w9);
+      const posNotConnectedUsers    = onboardedUsers.filter((p: any) => !p.pos);
 
-      // Pending / incomplete counts
-      const pendingOnboarding = totalSignups - onboarded;
-      const w9Incomplete      = onboarded - w9Complete;
-      const posNotConnected   = onboarded - posConnected;
+      // Counts derived from lists — guaranteed to match popup contents
+      const onboarded         = onboardedUsers.length;
+      const pendingOnboarding = pendingOnboardingUsers.length;
+      const w9Incomplete      = w9IncompleteUsers.length;
+      const posNotConnected   = posNotConnectedUsers.length;
 
       // Conversion rates
       const toOnboarded  = totalSignups  > 0 ? Math.round((onboarded    / totalSignups)  * 100) : 0;
@@ -1414,28 +1421,41 @@ const AdminPanel = () => {
           .filter((t: any) => new Date(t.transaction_date) >= new Date(Date.now() - 90 * 24 * 60 * 60 * 1000))
           .map((t: any) => t.merchant_id)
       );
-      const churned = profiles.filter((p: any) => p.onboarding_completed && !active90dIds.has(p.user_id)).length;
-      const churnRate = onboarded > 0 ? Math.round((churned / onboarded) * 100) : 0;
+      const churnedUsers  = onboardedUsers.filter((p: any) => !active90dIds.has(p.user_id));
+      const churned       = churnedUsers.length;
+      const churnRate     = onboarded > 0 ? Math.round((churned / onboarded) * 100) : 0;
 
       // Monthly active merchants (last 12 months)
-      const monthlyMap: Record<string, Set<string>> = {};
-      const signupMap:  Record<string, number>       = {};
+      const toKey   = (d: string) => { const dt = new Date(d); return `${dt.getFullYear()}-${String(dt.getMonth() + 1).padStart(2, '0')}`; };
+      const toLabel = (key: string) => { const [y, mo] = key.split('-'); return new Date(Number(y), Number(mo) - 1).toLocaleDateString('en-US', { month: 'short', year: '2-digit' }); };
+      const nameOf  = (uid: string) => { const p = profiles.find((x: any) => x.user_id === uid); return p ? (p.business_name || p.full_name || p.email || uid.slice(0, 8)) : uid.slice(0, 8); };
+      const monthlyMap:   Record<string, Set<string>> = {};
+      const signupMap:    Record<string, number>       = {};
+      const signupByMonth: Record<string, any[]>       = {};
       profiles.forEach((p: any) => {
-        const m = new Date(p.created_at).toLocaleDateString('en-US', { month: 'short', year: '2-digit' });
-        signupMap[m] = (signupMap[m] || 0) + 1;
+        const k = toKey(p.created_at);
+        signupMap[k] = (signupMap[k] || 0) + 1;
+        if (!signupByMonth[k]) signupByMonth[k] = [];
+        signupByMonth[k].push({ name: p.business_name || p.full_name || p.email || p.user_id?.slice(0, 8), email: p.email || '—' });
       });
       txns.forEach((t: any) => {
-        const m = new Date(t.transaction_date).toLocaleDateString('en-US', { month: 'short', year: '2-digit' });
-        if (!monthlyMap[m]) monthlyMap[m] = new Set();
-        monthlyMap[m].add(t.merchant_id);
+        const k = toKey(t.transaction_date);
+        if (!monthlyMap[k]) monthlyMap[k] = new Set();
+        monthlyMap[k].add(t.merchant_id);
       });
-      const months = [...new Set([...Object.keys(monthlyMap), ...Object.keys(signupMap)])].sort((a, b) =>
-        new Date('01 ' + a).getTime() - new Date('01 ' + b).getTime()
-      );
-      const monthlyActive = months.map(m => ({
-        month:    m,
-        active:   monthlyMap[m]?.size ?? 0,
-        signups:  signupMap[m]  ?? 0,
+      barterTxns.forEach((t: any) => {
+        if (!t.from_user_id) return;
+        const k = toKey(t.created_at);
+        if (!monthlyMap[k]) monthlyMap[k] = new Set();
+        monthlyMap[k].add(t.from_user_id);
+      });
+      const months = [...new Set([...Object.keys(monthlyMap), ...Object.keys(signupMap)])].sort();
+      const monthlyActive = months.map(k => ({
+        month:       toLabel(k),
+        active:      monthlyMap[k]?.size ?? 0,
+        signups:     signupMap[k] ?? 0,
+        activeList:  [...(monthlyMap[k] || [])].map(uid => ({ name: nameOf(uid), uid })),
+        signupList:  signupByMonth[k] || [],
       }));
 
       // Credits health
@@ -1476,7 +1496,7 @@ const AdminPanel = () => {
       });
 
       setGrowthData({
-        funnel: { totalSignups, onboarded, w9Complete, posConnected, pendingOnboarding, w9Incomplete, posNotConnected, toOnboarded, toW9, toPOS, churned, churnRate, signedUpUsers, onboardedUsers, w9Users, posActiveUsers },
+        funnel: { totalSignups, onboarded, w9Complete, posConnected, pendingOnboarding, w9Incomplete, posNotConnected, toOnboarded, toW9, toPOS, churned, churnRate, signedUpUsers, onboardedUsers, w9Users, posActiveUsers, pendingOnboardingUsers, w9IncompleteUsers, posNotConnectedUsers, churnedUsers },
         monthlyActive,
         credits: { totalEarned, totalSpent, totalAvailable, utilizationRate, annualTradeVolume, monthlyAvgVolume, outstandingRatio, velocity, liabilityStatus, velocityStatus, memberCreditHealth },
       });
@@ -2159,8 +2179,14 @@ const AdminPanel = () => {
                 suspendedAccounts: suspendedAccounts.length,
               }}
               onNavigate={(section, sub) => {
-                setActiveSection(section);
-                setSub(section, sub);
+                setAdminBackStack(prev => [...prev, { section: activeSection, sub: subSections[activeSection] ?? '' }]);
+                setActiveSectionState(section);
+                if (sub) setSubSections(prev => ({ ...prev, [section]: sub }));
+                setExpandedSections(prev => { const next = new Set(prev); next.add(section); return next; });
+                const params = new URLSearchParams();
+                params.set('section', section);
+                if (sub) params.set('sub', sub);
+                navigate(`/admin?${params.toString()}`, { replace: true });
               }}
             />
           )}
@@ -2239,6 +2265,7 @@ const AdminPanel = () => {
           {activeSection === 'creditrisk' && (
             <CreditRiskSection
               sub={subSections.creditrisk}
+              setSub={(s) => setSub('creditrisk', s)}
               data={creditRiskData}
               loading={creditRiskLoading}
               onSave={handleSaveCreditProfile}

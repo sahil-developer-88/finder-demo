@@ -188,20 +188,11 @@ const LandingPage = () => {
                   <Zap className="h-4 w-4" fill="currentColor" />
                   Start for free
                 </Link>
-                <button
-                  onClick={() => navigate('/stores')}
-                  className="inline-flex items-center justify-center gap-2 px-7 py-3.5 rounded-xl border border-slate-200 text-slate-700 font-semibold text-base hover:border-slate-300 hover:bg-slate-50 transition-all"
-                >
-                  Browse the network
-                  <ArrowRight className="h-4 w-4" />
-                </button>
               </div>
 
               {/* Trust row */}
               <div className="flex items-center gap-6 flex-wrap">
                 {[
-                  { val: '500+',  label: 'Active businesses' },
-                  { val: '$2M+',  label: 'Credits traded' },
                   { val: '100%',  label: 'Free to join' },
                 ].map((s, i) => (
                   <div key={s.label} className="flex items-center gap-2">
@@ -227,7 +218,7 @@ const LandingPage = () => {
                       <Zap className="h-5 w-5 text-white" fill="white" />
                     </div>
                     <div>
-                      <p className="font-bold text-slate-900 text-sm">SwapShop Network</p>
+                      <p className="font-bold text-slate-900 text-sm">Valuehub Exchange Network</p>
                       <p className="text-xs text-slate-400">Barter credits earned</p>
                     </div>
                   </div>
@@ -658,7 +649,7 @@ const LandingPage = () => {
               className="rounded-3xl p-8 space-y-3"
               style={{ background: 'linear-gradient(135deg, #f8faff 0%, #f3f0ff 100%)', border: '1px solid #e0e7ff' }}
             >
-              <p className="text-xs font-bold text-slate-400 uppercase tracking-widest mb-5">Old way vs. SwapShop</p>
+              <p className="text-xs font-bold text-slate-400 uppercase tracking-widest mb-5">Old way vs. Valuehub Exchange</p>
               {VS_ROWS.map((row, i) => (
                 <div
                   key={row.old}
@@ -826,13 +817,6 @@ const LandingPage = () => {
               <Zap className="h-4 w-4" fill="currentColor" />
               Get started — it's free
             </Link>
-            <button
-              onClick={() => navigate('/stores')}
-              className="inline-flex items-center justify-center gap-2 px-9 py-4 rounded-xl border border-slate-200 text-slate-700 font-semibold text-base hover:bg-slate-50 hover:border-slate-300 transition-all"
-            >
-              Browse the network
-              <ArrowRight className="h-4 w-4" />
-            </button>
           </div>
 
           <p className="text-sm text-slate-400 italic">

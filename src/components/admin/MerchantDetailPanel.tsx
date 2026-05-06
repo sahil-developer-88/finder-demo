@@ -104,7 +104,7 @@ const MerchantDetailPanel = ({ listing, onAction, onEdit, readOnly = false }: { 
     const uid = listing.user_id;
     Promise.all([
       supabase.from('profiles').select('*').eq('user_id', uid).single(),
-      supabase.from('user_credits').select('*').eq('user_id', uid).single(),
+      supabase.from('user_credits').select('*').eq('user_id', uid).maybeSingle(),
       supabase.from('pos_integrations').select('*').eq('user_id', uid),
       supabase.from('transactions').select('*').or(`from_user_id.eq.${uid},to_user_id.eq.${uid}`).order('created_at', { ascending: false }).limit(50),
       supabase.from('payment_requests').select('*').or(`seller_id.eq.${uid},buyer_id.eq.${uid}`).order('created_at', { ascending: false }).limit(50),

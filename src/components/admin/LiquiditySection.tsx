@@ -131,15 +131,15 @@ const LiquiditySection = ({ sub, setSub, data, loading }: { sub: string; setSub:
 
           {/* KPI Cards */}
           <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-            <StatCard icon={TrendingUp} label="Credit Velocity" value={`${data.velocityRate}%`} color="emerald" />
-            <StatCard icon={DollarSign} label="Credits Issued" value={`$${data.totalCreditsIssued.toLocaleString()}`} color="blue" />
-            <StatCard icon={Activity} label="Volume (90d)" value={`$${data.totalVolume90.toLocaleString()}`} color="indigo" />
-            <StatCard icon={Clock} label="Dormant Members" value={data.dormantCount} color="amber" />
+            <StatCard icon={TrendingUp} label="Credit Velocity" value={`${data.velocityRate}%`} color="emerald" onClick={() => setSub('Credit Velocity')} />
+            <StatCard icon={DollarSign} label="Credits Issued" value={`$${data.totalCreditsIssued.toLocaleString()}`} color="blue" onClick={() => setSub('Credit Velocity')} />
+            <StatCard icon={Activity} label="Volume (90d)" value={`$${data.totalVolume90.toLocaleString()}`} color="indigo" onClick={() => setSub('Credit Velocity')} />
+            <StatCard icon={Clock} label="Dormant Members" value={data.dormantCount} color="amber" onClick={() => setSub('Dormant Credits')} />
           </div>
 
           {/* Summary Cards */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <Card className="border-0 shadow-sm">
+            <Card className="border-0 shadow-sm cursor-pointer hover:shadow-md transition-shadow" onClick={() => setSub('Imbalances')}>
               <CardHeader className="pb-2">
                 <CardTitle className="text-sm font-semibold text-amber-700 flex items-center gap-2">
                   <TrendingUp className="h-4 w-4" /> Hoarding Risk
@@ -150,7 +150,7 @@ const LiquiditySection = ({ sub, setSub, data, loading }: { sub: string; setSub:
                 <p className="text-xs text-gray-500 mt-1">members with high earn/spend imbalance</p>
               </CardContent>
             </Card>
-            <Card className="border-0 shadow-sm">
+            <Card className="border-0 shadow-sm cursor-pointer hover:shadow-md transition-shadow" onClick={() => setSub('Imbalances')}>
               <CardHeader className="pb-2">
                 <CardTitle className="text-sm font-semibold text-red-700 flex items-center gap-2">
                   <AlertTriangle className="h-4 w-4" /> Trade Imbalance
@@ -276,8 +276,8 @@ const LiquiditySection = ({ sub, setSub, data, loading }: { sub: string; setSub:
       {sub === 'Dormant Credits' && (
         <div className="space-y-6">
           <div className="grid grid-cols-2 gap-4">
-            <StatCard icon={Clock} label="Dormant Members" value={data.dormantCount} color="amber" />
-            <StatCard icon={DollarSign} label="Total Dormant Balance" value={`$${data.dormant.reduce((s: number, c: any) => s + c.balance, 0).toLocaleString()}`} color="amber" />
+            <StatCard icon={Clock} label="Dormant Members" value={data.dormantCount} color="amber" onClick={() => setTimeout(() => document.getElementById('dormant-table')?.scrollIntoView({ behavior: 'smooth', block: 'start' }), 80)} />
+            <StatCard icon={DollarSign} label="Total Dormant Balance" value={`$${data.dormant.reduce((s: number, c: any) => s + c.balance, 0).toLocaleString()}`} color="amber" onClick={() => setTimeout(() => document.getElementById('dormant-table')?.scrollIntoView({ behavior: 'smooth', block: 'start' }), 80)} />
           </div>
 
           <Card className="border-amber-200 bg-amber-50 shadow-sm">
@@ -288,7 +288,7 @@ const LiquiditySection = ({ sub, setSub, data, loading }: { sub: string; setSub:
             </CardContent>
           </Card>
 
-          <Card className="border-0 shadow-sm overflow-hidden">
+          <Card id="dormant-table" className="border-0 shadow-sm overflow-hidden">
             <CardHeader className="pb-0 pt-5 px-5">
               <CardTitle className="text-sm font-semibold text-gray-700">Dormant Members</CardTitle>
             </CardHeader>
@@ -362,7 +362,7 @@ const LiquiditySection = ({ sub, setSub, data, loading }: { sub: string; setSub:
                                   supabase.from('messages').insert({
                                     sender_id: adminUser.id,
                                     recipient_id: m.id,
-                                    content: `Hi ${m.name},\n\nWe noticed you haven't been active on SwapShop for ${m.dormantDays || '90+'} days and you still have $${m.balance.toLocaleString()} in barter credits waiting to be used.\n\nLog in and browse available services — your credits are ready to spend!\n\nThank you,\nSwapShop Admin`,
+                                    content: `Hi ${m.name},\n\nWe noticed you haven't been active on Valuehub Exchange for ${m.dormantDays || '90+'} days and you still have $${m.balance.toLocaleString()} in barter credits waiting to be used.\n\nLog in and browse available services — your credits are ready to spend!\n\nThank you,\nValuehub Exchange Admin`,
                                     message_type: 'text',
                                   }),
                                 ]);

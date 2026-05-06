@@ -10,8 +10,9 @@ import { supabase } from '@/integrations/supabase/client';
 
 const PAGE_SIZE = 10;
 
-const CreditRiskSection = ({ sub, data, loading, onSave }: {
+const CreditRiskSection = ({ sub, setSub, data, loading, onSave }: {
   sub: string;
+  setSub: (s: string) => void;
   data: any[];
   loading: boolean;
   onSave: (row: any) => Promise<void>;
@@ -122,14 +123,19 @@ const CreditRiskSection = ({ sub, data, loading, onSave }: {
       {sub === 'Overview' && (
         <div className="space-y-5">
           <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
-            <StatCard icon={DollarSign}  label="Total Exposure"     value={`$${totalExposure.toLocaleString(undefined, { maximumFractionDigits: 0 })}`} color="red"     />
-            <StatCard icon={AlertCircle} label="Over Limit"         value={overLimit}                                  color="red"     />
-            <StatCard icon={BarChart2}   label="Avg Utilization"    value={`${(avgUtil * 100).toFixed(0)}%`}           color="amber"   />
-            <StatCard icon={DollarSign}  label="Deposits Held"      value={`$${depositsHeld.toLocaleString()}`}        color="blue"    />
-            <StatCard icon={CheckCircle} label="Guarantees on File" value={guaranteesCount}                            color="emerald" />
+            <StatCard icon={DollarSign}  label="Total Exposure"     value={`$${totalExposure.toLocaleString(undefined, { maximumFractionDigits: 0 })}`} color="red"
+              onClick={() => { setCrSort('balance-asc');       setCrPage(1); setTimeout(() => document.getElementById('cr-overview-table')?.scrollIntoView({ behavior: 'smooth', block: 'start' }), 80); }} />
+            <StatCard icon={AlertCircle} label="Over Limit"         value={overLimit}                                  color="red"
+              onClick={() => { setCrSort('risk');              setCrPage(1); setTimeout(() => document.getElementById('cr-overview-table')?.scrollIntoView({ behavior: 'smooth', block: 'start' }), 80); }} />
+            <StatCard icon={BarChart2}   label="Avg Utilization"    value={`${(avgUtil * 100).toFixed(0)}%`}           color="amber"
+              onClick={() => { setCrSort('utilization-desc'); setCrPage(1); setTimeout(() => document.getElementById('cr-overview-table')?.scrollIntoView({ behavior: 'smooth', block: 'start' }), 80); }} />
+            <StatCard icon={DollarSign}  label="Deposits Held"      value={`$${depositsHeld.toLocaleString()}`}        color="blue"
+              onClick={() => setSub('Deposits & Guarantees')} />
+            <StatCard icon={CheckCircle} label="Guarantees on File" value={guaranteesCount}                            color="emerald"
+              onClick={() => setSub('Deposits & Guarantees')} />
           </div>
 
-          <Card className="border-0 shadow-sm">
+          <Card id="cr-overview-table" className="border-0 shadow-sm">
             <div className="flex items-center justify-between px-4 py-3 border-b gap-3">
               <SHSearch value={crSearch} onChange={v => { setCrSearch(v); setCrPage(1); }} placeholder="Search business…" />
               {crSearch && <span className="text-xs text-gray-400 shrink-0">{filteredCrRows.length} of {rows.length}</span>}
@@ -373,13 +379,16 @@ const CreditRiskSection = ({ sub, data, loading, onSave }: {
       {sub === 'Deposits & Guarantees' && (
         <div className="space-y-5">
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-            <StatCard icon={DollarSign}  label="Total Deposits Held"  value={`$${depositsHeld.toLocaleString()}`}      color="blue"    />
-            <StatCard icon={CheckCircle} label="Guarantees on File"   value={guaranteesCount}                          color="emerald" />
-            <StatCard icon={AlertCircle} label="No Collateral"        value={rows.filter(r => !r.security_deposit_amount && !r.personal_guarantee_on_file).length} color="amber" sub="no deposit or guarantee" />
+            <StatCard icon={DollarSign}  label="Total Deposits Held"  value={`$${depositsHeld.toLocaleString()}`}      color="blue"
+              onClick={() => setTimeout(() => document.getElementById('dg-deposits')?.scrollIntoView({ behavior: 'smooth', block: 'start' }), 80)} />
+            <StatCard icon={CheckCircle} label="Guarantees on File"   value={guaranteesCount}                          color="emerald"
+              onClick={() => setTimeout(() => document.getElementById('dg-guarantees')?.scrollIntoView({ behavior: 'smooth', block: 'start' }), 80)} />
+            <StatCard icon={AlertCircle} label="No Collateral"        value={rows.filter(r => !r.security_deposit_amount && !r.personal_guarantee_on_file).length} color="amber" sub="no deposit or guarantee"
+              onClick={() => { setSub('Overview'); setCrSort('risk'); setCrPage(1); }} />
           </div>
 
           {/* Security deposits */}
-          <Card className="border-0 shadow-sm">
+          <Card id="dg-deposits" className="border-0 shadow-sm">
             <CardHeader className="pb-3 border-b">
               <CardTitle className="text-base flex items-center gap-2">
                 <DollarSign className="h-4 w-4 text-blue-500" />
@@ -450,7 +459,7 @@ const CreditRiskSection = ({ sub, data, loading, onSave }: {
           </Card>
 
           {/* Personal guarantees */}
-          <Card className="border-0 shadow-sm">
+          <Card id="dg-guarantees" className="border-0 shadow-sm">
             <CardHeader className="pb-3 border-b">
               <CardTitle className="text-base flex items-center gap-2">
                 <Shield className="h-4 w-4 text-emerald-500" />

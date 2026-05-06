@@ -22,6 +22,10 @@ const refreshToken = async (provider: string, refreshToken: string) => {
       // Shopify tokens don't expire, so no refresh needed
       throw new Error('Shopify tokens do not require refresh');
 
+    case 'toast':
+      // Toast does not issue refresh tokens — merchant must re-authorize
+      throw new Error('Toast tokens do not support refresh. Please reconnect your Toast account.');
+
     case 'clover':
       tokenUrl = 'https://www.clover.com/oauth/token';
       clientId = Deno.env.get('CLOVER_OAUTH_CLIENT_ID') || '';

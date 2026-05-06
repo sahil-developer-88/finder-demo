@@ -217,6 +217,36 @@ async function createCloverProduct(integration: any, data: any): Promise<string>
   });
 }
 
+// ── Toast ─────────────────────────────────────────────────────────────────────
+async function createToastProduct(integration: any, data: any): Promise<string> {
+  const restaurantGuid = integration.store_id;
+
+  return await callWithRefresh(integration, async (token) => {
+    const payload = {
+      name: data.name,
+      description: data.description || '',
+      price: Number(data.price),
+      unitOfMeasure: 'NONE',
+      type: 'MENU_ITEM',
+      visibility: ['POS'],
+    };
+
+    const res = await fetch('https://ws-api.toasttab.com/menus/v2/menuItems', {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${token}`,
+        'Toast-Restaurant-External-ID': restaurantGuid,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify(payload),
+    });
+
+    if (!res.ok) throw new Error(`Toast ${res.status} - ${await res.text()}`);
+    const result = await res.json();
+    return String(result.guid);
+  });
+}
+
 // ── Main handler ──────────────────────────────────────────────────────────────
 serve(async (req) => {
   if (req.method === 'OPTIONS') return new Response(null, { headers: corsHeaders });
@@ -280,6 +310,8 @@ serve(async (req) => {
       externalProductId = await createSquareProduct(integration, { name, description, price, stock_quantity, image_url, product_type });
     } else if (provider === 'clover') {
       externalProductId = await createCloverProduct(integration, { name, description, price, stock_quantity, product_type });
+    } else if (provider === 'toast') {
+      externalProductId = await createToastProduct(integration, { name, description, price, product_type });
     } else {
       externalProductId = crypto.randomUUID();
     }

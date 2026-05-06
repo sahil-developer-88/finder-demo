@@ -5,6 +5,7 @@ import { Label } from '@/components/ui/label';
 import { Send, DollarSign, User, Coins } from 'lucide-react';
 import { usePaymentRequests } from '@/hooks/usePaymentRequests';
 import { useAuth } from '@/hooks/useAuth';
+import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
 import MerchantSearchCombobox from './MerchantSearchCombobox';
 import {
@@ -26,6 +27,7 @@ interface CreatePaymentRequestProps {
 const CreatePaymentRequest: React.FC<CreatePaymentRequestProps> = ({ onSuccess, mode = 'request' }) => {
   const { createPaymentRequest, sendPayment } = usePaymentRequests();
   const { user } = useAuth();
+  const { toast } = useToast();
   const isSend = mode === 'send';
 
   const [recipientId, setRecipientId] = useState('');
@@ -90,7 +92,7 @@ const CreatePaymentRequest: React.FC<CreatePaymentRequestProps> = ({ onSuccess, 
       if (error?.message === 'PENDING_APPROVAL') {
         setPendingModalOpen(true);
       } else {
-        console.error('Error:', error);
+        toast({ title: 'Request failed', description: error?.message || 'Something went wrong. Please try again.', variant: 'destructive' });
       }
     } finally {
       setSubmitting(false);
@@ -232,7 +234,7 @@ const CreatePaymentRequest: React.FC<CreatePaymentRequestProps> = ({ onSuccess, 
                       </div>
                     )}
                   </div>
-                  <p className="text-xs text-gray-400">This action cannot be undone once confirmed.</p>
+                  <p className="text-xs text-gray-400">The recipient will need to accept before credits are transferred.</p>
                 </div>
               </AlertDialogDescription>
             </AlertDialogHeader>

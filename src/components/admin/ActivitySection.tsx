@@ -130,23 +130,26 @@ const ActivitySection = ({ sub, setSub, activityTxns, activityAudit, systemAlert
 
   const handleRetryWebhook = async (id: string) => {
     setRetryingId(id);
-    await supabase.from('webhook_logs').update({ status: 'pending' }).eq('id', id);
-    setAlerts(prev => prev.filter(a => a.id !== id));
+    const { error } = await supabase.from('webhook_logs').update({ status: 'pending' }).eq('id', id);
     setRetryingId(null);
+    if (error) { toast({ title: 'Failed to retry webhook', description: error.message, variant: 'destructive' }); return; }
+    setAlerts(prev => prev.filter(a => a.id !== id));
   };
 
   const handleApproveDisconnect = async (posId: string) => {
     setActioningId(posId);
-    await supabase.from('pos_integrations').update({ status: 'inactive' }).eq('id', posId);
-    setAlerts(prev => prev.filter(a => a.id !== posId));
+    const { error } = await supabase.from('pos_integrations').update({ status: 'inactive' }).eq('id', posId);
     setActioningId(null);
+    if (error) { toast({ title: 'Failed to disconnect POS', description: error.message, variant: 'destructive' }); return; }
+    setAlerts(prev => prev.filter(a => a.id !== posId));
   };
 
   const handleKeepConnected = async (posId: string) => {
     setActioningId(posId);
-    await supabase.from('pos_integrations').update({ status: 'active' }).eq('id', posId);
-    setAlerts(prev => prev.filter(a => a.id !== posId));
+    const { error } = await supabase.from('pos_integrations').update({ status: 'active' }).eq('id', posId);
     setActioningId(null);
+    if (error) { toast({ title: 'Failed to update POS status', description: error.message, variant: 'destructive' }); return; }
+    setAlerts(prev => prev.filter(a => a.id !== posId));
   };
 
   const [notifiedIds, setNotifiedIds] = useState<Set<string>>(new Set());
@@ -163,15 +166,16 @@ const ActivitySection = ({ sub, setSub, activityTxns, activityAudit, systemAlert
       dispute:    `You have an unresolved dispute that requires your attention. Please log in to review it.`,
       w9:         `Your W-9 tax form is missing. Please complete it in your Tax & 1099 settings to remain compliant.`,
     };
-    const body = msgMap[a.kind] || 'Action required on your SwapShop account.';
-    await supabase.from('notifications').insert({
+    const body = msgMap[a.kind] || 'Action required on your Valuehub Exchange account.';
+    const { error } = await supabase.from('notifications').insert({
       user_id: a.merchantId,
       title:   a.title,
       message: body,
-      type:    'admin_alert',
+      type:    'warning',
     });
-    setNotifiedIds(prev => new Set([...prev, a.id]));
     setNotifyingId(null);
+    if (error) { toast({ title: 'Failed to notify merchant', description: error.message, variant: 'destructive' }); return; }
+    setNotifiedIds(prev => new Set([...prev, a.id]));
   };
 
   const filteredAudit = auditSearch

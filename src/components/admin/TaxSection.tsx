@@ -74,6 +74,8 @@ const TaxSection = ({ sub, setSub, w9Data: realW9, w9Loading, annualTotals: real
   const [w9Page, setW9Page] = useState(1);
   const [w9Search, setW9Search] = useState('');
   const [w9Sort, setW9Sort] = useState<'name' | 'status-submitted' | 'status-pending' | 'withholding'>('name');
+  const [w9StatusFilter, setW9StatusFilter] = useState<'all' | 'submitted' | 'pending' | 'withholding'>('all');
+  const [f1099EligFilter, setF1099EligFilter] = useState<'all' | 'eligible' | 'w9-submitted' | 'missing-w9'>('all');
   const [annualPage, setAnnualPage] = useState(1);
   const [annualSearch, setAnnualSearch] = useState('');
   const [annualSort, setAnnualSort] = useState<'name' | 'total-desc' | 'total-asc' | 'q1-desc' | 'q2-desc' | 'q3-desc' | 'q4-desc'>('total-desc');
@@ -117,7 +119,12 @@ const TaxSection = ({ sub, setSub, w9Data: realW9, w9Loading, annualTotals: real
   const filteredW9  = (w9Search.trim()
     ? w9.filter(w => [w.businessName, w.legalName, w.email, w.ein].some(v => v?.toLowerCase().includes(w9Search.toLowerCase())))
     : w9
-  ).slice().sort((a, b) => {
+  ).filter(w => {
+    if (w9StatusFilter === 'submitted')   return w.submitted;
+    if (w9StatusFilter === 'pending')     return !w.submitted;
+    if (w9StatusFilter === 'withholding') return w.backupWithholding;
+    return true;
+  }).slice().sort((a, b) => {
     if (w9Sort === 'name')             return (a.businessName ?? '').localeCompare(b.businessName ?? '');
     if (w9Sort === 'status-submitted') return (b.submitted ? 1 : 0) - (a.submitted ? 1 : 0);
     if (w9Sort === 'status-pending')   return (a.submitted ? 1 : 0) - (b.submitted ? 1 : 0);
@@ -140,9 +147,12 @@ const TaxSection = ({ sub, setSub, w9Data: realW9, w9Loading, annualTotals: real
         ) : (
           <>
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-              <StatCard icon={CheckCircle} label="W-9 Submitted"      value={w9.filter(w => w.submitted).length}          color="emerald" />
-              <StatCard icon={Clock}       label="W-9 Pending"        value={w9.filter(w => !w.submitted).length}         color="amber"   />
-              <StatCard icon={AlertCircle} label="Backup Withholding" value={w9.filter(w => w.backupWithholding).length}  color="red"     />
+              <StatCard icon={CheckCircle} label="W-9 Submitted"      value={w9.filter(w => w.submitted).length}          color="emerald"
+                onClick={() => { setW9StatusFilter(w9StatusFilter === 'submitted'   ? 'all' : 'submitted');   setW9Page(1); }} />
+              <StatCard icon={Clock}       label="W-9 Pending"        value={w9.filter(w => !w.submitted).length}         color="amber"
+                onClick={() => { setW9StatusFilter(w9StatusFilter === 'pending'     ? 'all' : 'pending');     setW9Page(1); }} />
+              <StatCard icon={AlertCircle} label="Backup Withholding" value={w9.filter(w => w.backupWithholding).length}  color="red"
+                onClick={() => { setW9StatusFilter(w9StatusFilter === 'withholding' ? 'all' : 'withholding'); setW9Page(1); }} />
             </div>
 
             <Card className="border-0 shadow-sm">
@@ -202,13 +212,13 @@ const TaxSection = ({ sub, setSub, w9Data: realW9, w9Loading, annualTotals: real
                                   supabase.from('notifications').insert({
                                     user_id: w.id,
                                     title: 'W-9 Required',
-                                    message: 'Your W-9 tax form is required to continue trading on SwapShop. Please complete it in your Profile Settings under the Tax tab.',
+                                    message: 'Your W-9 tax form is required to continue trading on Valuehub Exchange. Please complete it in your Profile Settings under the Tax tab.',
                                     type: 'warning',
                                   }),
                                   supabase.from('messages').insert({
                                     sender_id: adminUser.id,
                                     recipient_id: w.id,
-                                    content: `Hi ${w.businessName},\n\nThis is a reminder from the SwapShop admin team that your W-9 tax form has not been completed yet.\n\nPlease log in and go to Profile Settings → Tax to complete and submit your W-9. This is required to remain active on the platform.\n\nThank you,\nSwapShop Admin`,
+                                    content: `Hi ${w.businessName},\n\nThis is a reminder from the Valuehub Exchange admin team that your W-9 tax form has not been completed yet.\n\nPlease log in and go to Profile Settings → Tax to complete and submit your W-9. This is required to remain active on the platform.\n\nThank you,\nValuehub Exchange Admin`,
                                     message_type: 'text',
                                   }),
                                 ]);
@@ -309,9 +319,12 @@ const TaxSection = ({ sub, setSub, w9Data: realW9, w9Loading, annualTotals: real
     {sub === '1099-B Prep' && (
       <div className="space-y-5">
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-          <StatCard icon={FileText}    label="Eligible Members"  value={form1099Data.filter(f => f.eligible).length}                        color="blue"    />
-          <StatCard icon={CheckCircle} label="W-9 Submitted"     value={form1099Data.filter(f => f.eligible && f.w9Submitted).length}   color="emerald" />
-          <StatCard icon={Clock}       label="Missing W-9"       value={form1099Data.filter(f => f.eligible && !f.w9Submitted).length}  color="amber" />
+          <StatCard icon={FileText}    label="Eligible Members"  value={form1099Data.filter(f => f.eligible).length}                       color="blue"
+            onClick={() => { setF1099EligFilter(f1099EligFilter === 'eligible'     ? 'all' : 'eligible');     setF1099Page(1); }} />
+          <StatCard icon={CheckCircle} label="W-9 Submitted"    value={form1099Data.filter(f => f.eligible && f.w9Submitted).length}  color="emerald"
+            onClick={() => { setF1099EligFilter(f1099EligFilter === 'w9-submitted' ? 'all' : 'w9-submitted'); setF1099Page(1); }} />
+          <StatCard icon={Clock}       label="Missing W-9"      value={form1099Data.filter(f => f.eligible && !f.w9Submitted).length} color="amber"
+            onClick={() => { setF1099EligFilter(f1099EligFilter === 'missing-w9'   ? 'all' : 'missing-w9');   setF1099Page(1); }} />
         </div>
 
         <Card className="border-0 shadow-sm">
@@ -334,6 +347,12 @@ const TaxSection = ({ sub, setSub, w9Data: realW9, w9Loading, annualTotals: real
           <CardContent className="p-0 overflow-x-auto">
             {(() => {
               const filt1099 = (f1099Search.trim() ? form1099Data.filter(f => f.businessName?.toLowerCase().includes(f1099Search.toLowerCase())) : form1099Data)
+                .filter(f => {
+                  if (f1099EligFilter === 'eligible')     return f.eligible;
+                  if (f1099EligFilter === 'w9-submitted') return f.eligible && f.w9Submitted;
+                  if (f1099EligFilter === 'missing-w9')   return f.eligible && !f.w9Submitted;
+                  return true;
+                })
                 .slice().sort((a: any, b: any) => {
                   if (f1099Sort === 'gross-desc')    return (b.grossBarter ?? 0) - (a.grossBarter ?? 0);
                   if (f1099Sort === 'gross-asc')     return (a.grossBarter ?? 0) - (b.grossBarter ?? 0);
@@ -375,7 +394,7 @@ const TaxSection = ({ sub, setSub, w9Data: realW9, w9Loading, annualTotals: real
                             const w9 = w9Map[f.id];
                             await download1099BPdf({
                               taxYear: taxYear,
-                              payerName: 'SwapShop Barter Exchange',
+                              payerName: 'Valuehub Exchange Barter Exchange',
                               payerAddress: '',
                               payerCityStateZip: '',
                               payerTin: '',
@@ -799,7 +818,7 @@ const TaxSection = ({ sub, setSub, w9Data: realW9, w9Loading, annualTotals: real
                                 supabase.from('messages').insert({
                                   sender_id: adminUser.id,
                                   recipient_id: w.id,
-                                  content: `Hi ${w.businessName},\n\nOur records show you have not submitted a W-9 tax form. Per IRS regulations, we are required to apply 24% backup withholding to your barter income until a valid W-9 is on file.\n\nPlease log in and complete your W-9 under Profile Settings → Tax as soon as possible.\n\nThank you,\nSwapShop Admin`,
+                                  content: `Hi ${w.businessName},\n\nOur records show you have not submitted a W-9 tax form. Per IRS regulations, we are required to apply 24% backup withholding to your barter income until a valid W-9 is on file.\n\nPlease log in and complete your W-9 under Profile Settings → Tax as soon as possible.\n\nThank you,\nValuehub Exchange Admin`,
                                   message_type: 'text',
                                 }),
                               ]);
@@ -884,7 +903,7 @@ const TaxSection = ({ sub, setSub, w9Data: realW9, w9Loading, annualTotals: real
                                 supabase.from('messages').insert({
                                   sender_id: adminUser.id,
                                   recipient_id: w.id,
-                                  content: `Hi ${w.businessName},\n\nYour account has been flagged for backup withholding. You are not currently marked as exempt from IRS backup withholding requirements.\n\nPer IRS regulations, we are required to withhold 24% of your barter income and remit it to the IRS until your exemption status is resolved.\n\nPlease log in and review your W-9 information under Profile Settings → Tax. If you believe this is an error, ensure your W-9 certification is complete and that your exempt status is correctly indicated.\n\nThank you,\nSwapShop Admin`,
+                                  content: `Hi ${w.businessName},\n\nYour account has been flagged for backup withholding. You are not currently marked as exempt from IRS backup withholding requirements.\n\nPer IRS regulations, we are required to withhold 24% of your barter income and remit it to the IRS until your exemption status is resolved.\n\nPlease log in and review your W-9 information under Profile Settings → Tax. If you believe this is an error, ensure your W-9 certification is complete and that your exempt status is correctly indicated.\n\nThank you,\nValuehub Exchange Admin`,
                                   message_type: 'text',
                                 }),
                               ]);

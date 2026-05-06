@@ -85,10 +85,14 @@ const SupplyMapSection = ({ sub, setSub, data, loading }: {
 
       {/* KPI row */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-        <StatCard icon={Store}      label="Total Listings"    value={totalListings}                                                                    color="indigo" />
-        <StatCard icon={BarChart2}  label="Categories"        value={categories.length}                                                                color="blue"   />
-        <StatCard icon={AlertCircle}label="Underrepresented"  value={underrep.length}                                                                  color="amber"  sub="< 3 listings" />
-        <StatCard icon={TrendingUp} label="Avg Ticket Size"   value={`$${(categories.reduce((s: number, c: any) => s + (c.avgTicket ?? 0), 0) / Math.max(categories.length, 1)).toFixed(0)}`} color="emerald" />
+        <StatCard icon={Store}       label="Total Listings"   value={totalListings}         color="indigo"
+          onClick={() => { setSub('Categories'); setTimeout(() => document.getElementById('sm-cat-table')?.scrollIntoView({ behavior: 'smooth', block: 'start' }), 80); }} />
+        <StatCard icon={BarChart2}   label="Categories"       value={categories.length}     color="blue"
+          onClick={() => setSub('Categories')} />
+        <StatCard icon={AlertCircle} label="Underrepresented" value={underrep.length}       color="amber" sub="< 3 listings"
+          onClick={() => { setSub('Categories'); setCatSort2('listings-asc'); setCatPage(1); setTimeout(() => document.getElementById('sm-cat-table')?.scrollIntoView({ behavior: 'smooth', block: 'start' }), 80); }} />
+        <StatCard icon={TrendingUp}  label="Avg Ticket Size"  value={`$${(categories.reduce((s: number, c: any) => s + (c.avgTicket ?? 0), 0) / Math.max(categories.length, 1)).toFixed(0)}`} color="emerald"
+          onClick={() => { setSub('Categories'); setCatSort2('avgTicket-desc'); setCatPage(1); setTimeout(() => document.getElementById('sm-cat-table')?.scrollIntoView({ behavior: 'smooth', block: 'start' }), 80); }} />
       </div>
 
       {/* Sub-nav */}
@@ -114,7 +118,7 @@ const SupplyMapSection = ({ sub, setSub, data, loading }: {
             </div>
           )}
 
-          <Card className="border-0 shadow-sm">
+          <Card id="sm-cat-table" className="border-0 shadow-sm">
             <CardHeader className="pb-0 border-b">
               <CardTitle className="text-base">Category Saturation & Avg Ticket Size</CardTitle>
             </CardHeader>

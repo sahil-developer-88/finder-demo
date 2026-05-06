@@ -232,7 +232,7 @@ const ProductDetail = () => {
                 : 'bg-red-50 text-red-700 border-red-100'
             }`}>
               {product.is_barter_eligible
-                ? <><CheckCircle className="h-4 w-4 shrink-0" /> Barter eligible — pay partly with SwapShop credits</>
+                ? <><CheckCircle className="h-4 w-4 shrink-0" /> Barter eligible — pay partly with Valuehub Exchange credits</>
                 : <><AlertCircle className="h-4 w-4 shrink-0" /> Cash only — {product.restriction_reason || 'Not eligible for barter'}</>
               }
             </div>

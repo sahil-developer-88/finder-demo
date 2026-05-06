@@ -7,9 +7,22 @@ import { Badge } from '@/components/ui/badge';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { useNotifications } from '@/hooks/useNotifications';
 import { formatDistanceToNow } from 'date-fns';
+import { useNavigate } from 'react-router-dom';
+
+const BARTER_NOTIF_TAB = '/account-dashboard?tab=trade-send-request&tsub=Barter+Notifications';
+
+const NOTIFICATION_LINKS: Record<string, string> = {
+  'Barter Credits Pending':  '/account-dashboard?tab=trade-send-request&tsub=Trade+Requests',
+  'Barter Credits Received': BARTER_NOTIF_TAB,
+  'Barter Credits Accepted': BARTER_NOTIF_TAB,
+  'Barter Credits Debited':  BARTER_NOTIF_TAB,
+  'Barter Send Rejected':    BARTER_NOTIF_TAB,
+  'Barter Send Initiated':   BARTER_NOTIF_TAB,
+};
 
 const NotificationCenter = () => {
   const { notifications, unreadCount, markAsRead, markAllAsRead, loading } = useNotifications();
+  const navigate = useNavigate();
 
   const getTypeColor = (type: string) => {
     switch (type) {
@@ -78,7 +91,11 @@ const NotificationCenter = () => {
                       ? 'border-gray-200 opacity-60'
                       : 'border-blue-500 bg-blue-50'
                   }`}
-                  onClick={() => !notification.read && markAsRead(notification.id)}
+                  onClick={() => {
+                    if (!notification.read) markAsRead(notification.id);
+                    const link = NOTIFICATION_LINKS[notification.title];
+                    if (link) navigate(link);
+                  }}
                 >
                   <div className="flex items-start justify-between">
                     <div className="flex-1">

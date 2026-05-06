@@ -2,7 +2,7 @@ import { PDFDocument, rgb, StandardFonts } from 'pdf-lib';
 
 export interface Form1099BData {
   taxYear: number;
-  // Payer (SwapShop)
+  // Payer (Valuehub Exchange)
   payerName: string;
   payerAddress: string;
   payerCityStateZip: string;
