@@ -67,10 +67,12 @@ const Index = () => {
         const isCat = selectedCategory !== 'All Categories';
         let fQuery = supabase.from('businesses')
           .select('id, user_id, business_name, category, description, services_offered, barter_percentage, location, contact_method, status')
+          .eq('status', 'active')
           .order('barter_percentage', { ascending: false })
           .limit(12);
         let nQuery = supabase.from('businesses')
           .select('id, user_id, business_name, category, description, services_offered, barter_percentage, location, contact_method, status')
+          .eq('status', 'active')
           .order('created_at', { ascending: false })
           .limit(12);
         if (user) { fQuery = fQuery.neq('user_id', user.id); nQuery = nQuery.neq('user_id', user.id); }
@@ -101,9 +103,11 @@ const Index = () => {
 
           let pQuery = supabase.from('businesses')
             .select('id, user_id, business_name, category, description, services_offered, barter_percentage, location, contact_method, status')
+            .eq('status', 'active')
             .order('barter_percentage', { ascending: false }).limit(12);
           let sQuery = supabase.from('businesses')
             .select('id, user_id, business_name, category, description, services_offered, barter_percentage, location, contact_method, status')
+            .eq('status', 'active')
             .order('barter_percentage', { ascending: false }).limit(12);
           if (user) { pQuery = pQuery.neq('user_id', user.id); sQuery = sQuery.neq('user_id', user.id); }
 
@@ -147,6 +151,7 @@ const Index = () => {
     let query = supabase
       .from('businesses')
       .select('id, user_id, business_name, category, description, services_offered, barter_percentage, location, contact_method, status')
+      .eq('status', 'active')
       .order(sort === 'featured' ? 'barter_percentage' : 'created_at', { ascending: false })
       .range(from, to);
 
@@ -380,7 +385,7 @@ const Index = () => {
                   <>
                     <div className="text-4xl mb-3">🌱</div>
                     <h3 className="text-lg font-semibold text-gray-700 mb-1">This spot is wide open!</h3>
-                    <p className="text-sm text-gray-400">No businesses have joined this category yet — be the first to get discovered on Valuehub Exchange!</p>
+                    <p className="text-sm text-gray-400">No businesses have joined this category yet — be the first to get discovered on Value Exchange!</p>
                   </>
                 )}
               </div>

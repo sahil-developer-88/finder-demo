@@ -166,7 +166,7 @@ const ActivitySection = ({ sub, setSub, activityTxns, activityAudit, systemAlert
       dispute:    `You have an unresolved dispute that requires your attention. Please log in to review it.`,
       w9:         `Your W-9 tax form is missing. Please complete it in your Tax & 1099 settings to remain compliant.`,
     };
-    const body = msgMap[a.kind] || 'Action required on your Valuehub Exchange account.';
+    const body = msgMap[a.kind] || 'Action required on your Value Exchange account.';
     const { error } = await supabase.from('notifications').insert({
       user_id: a.merchantId,
       title:   a.title,

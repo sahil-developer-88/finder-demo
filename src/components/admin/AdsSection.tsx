@@ -175,6 +175,22 @@ const AdsSection = ({ activeSubTab }: { activeSubTab: string }) => {
                   <div className="sm:col-span-2">
                     <label className="text-xs font-semibold text-gray-500 uppercase tracking-wide block mb-1">Image URL</label>
                     <Input value={form.image_url} onChange={e => setForm(f => ({ ...f, image_url: e.target.value }))} placeholder="https://..." />
+                    {form.image_url.trim() && (
+                      <div className="mt-2 rounded-lg overflow-hidden border border-gray-200 h-20 bg-gray-100 relative">
+                        <img
+                          src={form.image_url.trim()}
+                          alt="Preview"
+                          className="w-full h-full object-cover"
+                          onError={e => {
+                            (e.target as HTMLImageElement).style.display = 'none';
+                            (e.target as HTMLImageElement).nextElementSibling?.classList.remove('hidden');
+                          }}
+                        />
+                        <p className="hidden absolute inset-0 flex items-center justify-center text-xs text-red-500 font-medium bg-red-50">
+                          ⚠ Image failed to load — check the URL is publicly accessible
+                        </p>
+                      </div>
+                    )}
                   </div>
                   <div>
                     <label className="text-xs font-semibold text-gray-500 uppercase tracking-wide block mb-1">Headline</label>

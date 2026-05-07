@@ -14,45 +14,42 @@ export type Database = {
   }
   public: {
     Tables: {
-      ledger_entries: {
+      ad_banners: {
         Row: {
-          id:             string
-          user_id:        string
-          entry_type:     string
-          cash_amount:    number
-          barter_amount:  number
-          source:         string
-          reference_id:   string | null
-          description:    string | null
-          balance_before: number | null
-          balance_after:  number | null
-          created_at:     string
+          created_at: string | null
+          created_by: string | null
+          expires_at: string | null
+          headline: string | null
+          id: string
+          image_url: string | null
+          link_url: string | null
+          merchant_name: string
+          status: string | null
+          sub_text: string | null
         }
         Insert: {
-          id?:            string
-          user_id:        string
-          entry_type:     string
-          cash_amount?:   number
-          barter_amount?: number
-          source:         string
-          reference_id?:  string | null
-          description?:   string | null
-          balance_before?: number | null
-          balance_after?:  number | null
-          created_at?:    string
+          created_at?: string | null
+          created_by?: string | null
+          expires_at?: string | null
+          headline?: string | null
+          id?: string
+          image_url?: string | null
+          link_url?: string | null
+          merchant_name: string
+          status?: string | null
+          sub_text?: string | null
         }
         Update: {
-          id?:            string
-          user_id?:       string
-          entry_type?:    string
-          cash_amount?:   number
-          barter_amount?: number
-          source?:        string
-          reference_id?:  string | null
-          description?:   string | null
-          balance_before?: number | null
-          balance_after?:  number | null
-          created_at?:    string
+          created_at?: string | null
+          created_by?: string | null
+          expires_at?: string | null
+          headline?: string | null
+          id?: string
+          image_url?: string | null
+          link_url?: string | null
+          merchant_name?: string
+          status?: string | null
+          sub_text?: string | null
         }
         Relationships: []
       }
@@ -77,31 +74,40 @@ export type Database = {
       audit_logs: {
         Row: {
           action: string
+          admin_id: string | null
           created_at: string
           id: string
           new_data: Json | null
           old_data: Json | null
+          reason: string | null
           record_id: string
+          section: string | null
           table_name: string
           user_id: string
         }
         Insert: {
           action: string
+          admin_id?: string | null
           created_at?: string
           id?: string
           new_data?: Json | null
           old_data?: Json | null
+          reason?: string | null
           record_id: string
+          section?: string | null
           table_name: string
           user_id: string
         }
         Update: {
           action?: string
+          admin_id?: string | null
           created_at?: string
           id?: string
           new_data?: Json | null
           old_data?: Json | null
+          reason?: string | null
           record_id?: string
+          section?: string | null
           table_name?: string
           user_id?: string
         }
@@ -166,6 +172,7 @@ export type Database = {
           images: string[] | null
           location: string
           review_count: number | null
+          search_vector: unknown
           services_offered: string[]
           status: string
           tax_rate: number
@@ -186,6 +193,7 @@ export type Database = {
           images?: string[] | null
           location: string
           review_count?: number | null
+          search_vector?: unknown
           services_offered?: string[]
           status?: string
           tax_rate?: number
@@ -206,6 +214,7 @@ export type Database = {
           images?: string[] | null
           location?: string
           review_count?: number | null
+          search_vector?: unknown
           services_offered?: string[]
           status?: string
           tax_rate?: number
@@ -380,6 +389,84 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      favorites: {
+        Row: {
+          business_id: string
+          created_at: string
+          id: string
+          user_id: string
+        }
+        Insert: {
+          business_id: string
+          created_at?: string
+          id?: string
+          user_id: string
+        }
+        Update: {
+          business_id?: string
+          created_at?: string
+          id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "favorites_business_id_fkey"
+            columns: ["business_id"]
+            isOneToOne: false
+            referencedRelation: "business_listings"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "favorites_business_id_fkey"
+            columns: ["business_id"]
+            isOneToOne: false
+            referencedRelation: "businesses"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      ledger_entries: {
+        Row: {
+          balance_after: number | null
+          balance_before: number | null
+          barter_amount: number
+          cash_amount: number
+          created_at: string
+          description: string | null
+          entry_type: string
+          id: string
+          reference_id: string | null
+          source: string
+          user_id: string
+        }
+        Insert: {
+          balance_after?: number | null
+          balance_before?: number | null
+          barter_amount?: number
+          cash_amount?: number
+          created_at?: string
+          description?: string | null
+          entry_type: string
+          id?: string
+          reference_id?: string | null
+          source: string
+          user_id: string
+        }
+        Update: {
+          balance_after?: number | null
+          balance_before?: number | null
+          barter_amount?: number
+          cash_amount?: number
+          created_at?: string
+          description?: string | null
+          entry_type?: string
+          id?: string
+          reference_id?: string | null
+          source?: string
+          user_id?: string
+        }
+        Relationships: []
       }
       merchant_credit_profiles: {
         Row: {
@@ -1574,27 +1661,6 @@ export type Database = {
         }
         Relationships: []
       }
-      favorites: {
-        Row: {
-          id:          string
-          user_id:     string
-          business_id: string
-          created_at:  string
-        }
-        Insert: {
-          id?:         string
-          user_id:     string
-          business_id: string
-          created_at?: string
-        }
-        Update: {
-          id?:         string
-          user_id?:    string
-          business_id?: string
-          created_at?: string
-        }
-        Relationships: []
-      }
       qr_failure_log: {
         Row: {
           created_at: string
@@ -1628,6 +1694,45 @@ export type Database = {
           scanned_at?: string
           seconds_late?: number | null
           token?: string
+        }
+        Relationships: []
+      }
+      reconciliation_reports: {
+        Row: {
+          credits_total: number
+          details: Json | null
+          discrepancy: number
+          id: string
+          ledger_total: number
+          resolved: boolean
+          resolved_at: string | null
+          resolved_by: string | null
+          run_at: string
+          status: string
+        }
+        Insert: {
+          credits_total: number
+          details?: Json | null
+          discrepancy: number
+          id?: string
+          ledger_total: number
+          resolved?: boolean
+          resolved_at?: string | null
+          resolved_by?: string | null
+          run_at?: string
+          status: string
+        }
+        Update: {
+          credits_total?: number
+          details?: Json | null
+          discrepancy?: number
+          id?: string
+          ledger_total?: number
+          resolved?: boolean
+          resolved_at?: string | null
+          resolved_by?: string | null
+          run_at?: string
+          status?: string
         }
         Relationships: []
       }
@@ -1704,6 +1809,36 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      services: {
+        Row: {
+          created_at: string
+          description: string
+          id: string
+          merchant_id: string
+          name: string
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          description: string
+          id?: string
+          merchant_id: string
+          name: string
+          status?: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          description?: string
+          id?: string
+          merchant_id?: string
+          name?: string
+          status?: string
+          updated_at?: string
+        }
+        Relationships: []
       }
       tax_info: {
         Row: {
@@ -2144,17 +2279,6 @@ export type Database = {
       }
     }
     Functions: {
-      run_fraud_detection: {
-        Args: Record<PropertyKey, never>
-        Returns: Json
-      }
-      admin_write_off_credits: {
-        Args: {
-          p_target_user_id: string
-          p_reason?: string
-        }
-        Returns: Json
-      }
       admin_adjust_credits: {
         Args: {
           p_delta: number
@@ -2165,27 +2289,19 @@ export type Database = {
         Returns: Json
       }
       admin_batch_issue_credits: {
-        Args: {
-          p_entries: Json
-          p_reason: string
-          p_notes?: string
-        }
-        Returns: Json
-      }
-      admin_issue_refund: {
-        Args: {
-          p_tx_id: string
-          p_tx_type: string
-          p_reason?: string
-        }
+        Args: { p_entries: Json; p_notes?: string; p_reason: string }
         Returns: Json
       }
       admin_edit_transaction: {
-        Args: {
-          p_tx_id: string
-          p_tx_type: string
-          p_fields: Json
-        }
+        Args: { p_fields: Json; p_tx_id: string; p_tx_type: string }
+        Returns: Json
+      }
+      admin_issue_refund: {
+        Args: { p_reason?: string; p_tx_id: string; p_tx_type: string }
+        Returns: Json
+      }
+      admin_write_off_credits: {
+        Args: { p_reason?: string; p_target_user_id: string }
         Returns: Json
       }
       authenticate_with_pin: {
@@ -2238,6 +2354,16 @@ export type Database = {
         Args: { p_amount: number; p_merchant_id: string }
         Returns: undefined
       }
+      customer_pay_merchant: {
+        Args: { p_amount: number; p_merchant_id: string }
+        Returns: {
+          amount: number
+          error_message: string
+          merchant_name: string
+          success: boolean
+          transaction_id: string
+        }[]
+      }
       debit_user_credits: {
         Args: { p_amount: number; p_user_id: string }
         Returns: undefined
@@ -2273,6 +2399,13 @@ export type Database = {
         Returns: {
           full_name: string
           id: string
+        }[]
+      }
+      get_support_contact: {
+        Args: never
+        Returns: {
+          display_name: string
+          user_id: string
         }[]
       }
       get_user_emails: {
@@ -2311,22 +2444,47 @@ export type Database = {
         }[]
       }
       merchant_get_summary_range: {
-        Args: { p_start: string; p_end: string }
+        Args: { p_end: string; p_start: string }
         Returns: {
-          summary_date: string
-          total_sales: number
           barter_amount: number
           cash_amount: number
+          summary_date: string
+          total_sales: number
           tx_count: number
         }[]
       }
       merchant_get_yearly_barter_earnings: {
         Args: { p_year?: number }
         Returns: {
+          earned: number
           month_label: string
           month_num: number
-          earned: number
           spent: number
+        }[]
+      }
+      peek_barter_qr: {
+        Args: { p_token: string }
+        Returns: {
+          available_credits: number
+          customer_id: string
+          customer_name: string
+          error_message: string
+          valid: boolean
+        }[]
+      }
+      process_barter_payment: {
+        Args: {
+          p_barter_amount: number
+          p_merchant_id: string
+          p_token: string
+        }
+        Returns: {
+          barter_amount: number
+          customer_id: string
+          customer_name: string
+          error_message: string
+          success: boolean
+          transaction_id: string
         }[]
       }
       process_order_checkout: {
@@ -2342,6 +2500,8 @@ export type Database = {
         Args: { p_reason: string; p_session_id: string }
         Returns: boolean
       }
+      run_credit_reconciliation: { Args: never; Returns: Json }
+      run_fraud_detection: { Args: never; Returns: Json }
       update_barcode_usage: { Args: { p_barcode: string }; Returns: undefined }
       update_order_from_pos_webhook: {
         Args: {
@@ -2368,37 +2528,6 @@ export type Database = {
         Returns: {
           consumed_at: string
           customer_id: string
-        }[]
-      }
-      peek_barter_qr: {
-        Args: { p_token: string }
-        Returns: {
-          customer_id: string
-          customer_name: string
-          available_credits: number
-          valid: boolean
-          error_message: string | null
-        }[]
-      }
-      process_barter_payment: {
-        Args: { p_token: string; p_merchant_id: string; p_barter_amount: number }
-        Returns: {
-          success: boolean
-          customer_id: string
-          customer_name: string
-          barter_amount: number
-          transaction_id: string
-          error_message: string | null
-        }[]
-      }
-      customer_pay_merchant: {
-        Args: { p_merchant_id: string; p_amount: number }
-        Returns: {
-          success: boolean
-          merchant_name: string
-          amount: number
-          transaction_id: string
-          error_message: string | null
         }[]
       }
     }
@@ -2554,3 +2683,4 @@ export const Constants = {
     },
   },
 } as const
+<claude-code-hint v="1" type="plugin" value="supabase@claude-plugins-official" />

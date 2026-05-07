@@ -58,7 +58,7 @@ const Header = () => {
                 <div className="absolute inset-0 rounded-xl bg-gradient-to-br from-indigo-500 to-violet-600 blur-md opacity-40 group-hover:opacity-60 transition-opacity -z-10" />
               </div>
               <span className="text-xl font-black tracking-tight">
-                <span className="bg-gradient-to-r from-white to-white/80 bg-clip-text text-transparent">Valuehub</span>
+                <span className="bg-gradient-to-r from-white to-white/80 bg-clip-text text-transparent">Value Exchange</span>
                 <span className="bg-gradient-to-r from-indigo-400 to-violet-400 bg-clip-text text-transparent"> Exchange</span>
               </span>
             </button>

@@ -186,7 +186,7 @@ serve(async (req) => {
       metadata.lightspeed_mode = lightspeedMode;
     }
     if (platform === 'mobile') {
-      metadata.mobile_redirect_uri = 'swapshop://oauth-callback';
+      metadata.mobile_redirect_uri = 'valueexchange://oauth-callback';
     }
     if (callbackRedirect) {
       metadata.callback_redirect = callbackRedirect;

@@ -588,8 +588,11 @@ const Dashboard = () => {
   const [creditLine, setCreditLine] = useState<number>(500);
   const [creditLineLoading, setCreditLineLoading] = useState(true);
   const [userBusinesses, setUserBusinesses] = useState<any[]>([]);
+  const [userServices, setUserServices] = useState<any[]>([]);
   const [listingFilter, setListingFilter] = useState<'all' | 'active' | 'pending' | 'inactive'>('all');
-  const [listingTab, setListingTab] = useState<'products' | 'services'>('products');
+  const [listingTab, setListingTab] = useState<'products' | 'services'>(
+    (!userProfile?.business_type || userProfile?.business_type === 'service') ? 'services' : 'products'
+  );
   const [productPage, setProductPage] = useState(0);
   const PRODUCT_PAGE_SIZE = 20;
   const [showNewListing, setShowNewListing] = useState(false);
@@ -605,6 +608,17 @@ const Dashboard = () => {
     if (error) console.error('Failed to load businesses:', error);
     setUserBusinesses(data || []);
   };
+
+  const refreshServices = async () => {
+    if (!user) return;
+    const { data, error } = await supabase.from('services')
+      .select('id, name, description, status, created_at')
+      .eq('merchant_id', user.id)
+      .order('created_at', { ascending: false });
+    if (error) console.error('Failed to load services:', error);
+    setUserServices(data || []);
+  };
+
   const { user } = useAuth();
   const { products: posProducts, refetch: refetchProducts } = useProducts();
   const { toast } = useToast();
@@ -697,7 +711,7 @@ const Dashboard = () => {
       });
 
     refreshBusinesses();
-
+    refreshServices();
 
     supabase.from('pos_integrations')
       .select('*')
@@ -1093,7 +1107,7 @@ const Dashboard = () => {
                 value={barterPointsLoading ? <Loader2 className="h-5 w-5 animate-spin text-emerald-500" /> : `$${barterPoints?.toLocaleString() ?? 0}`}
                 color="emerald"
               />
-              <StatCard icon={Eye}          label="Active Listings"   value={userBusinesses.filter(l => l.status === 'active').length} color="blue"   />
+              <StatCard icon={Eye}          label="Active Listings"   value={userServices.filter(l => l.status === 'active').length} color="blue"   />
               <StatCard icon={Star}         label="Completed Trades"  value={completedTrades}                                       color="purple" />
               <StatCard icon={MessageSquare}label="Pending Requests"  value={pendingRequestsCount}                                  color="amber"  />
             </div>
@@ -1206,7 +1220,7 @@ const Dashboard = () => {
                     {userProfile?.business_name || userProfile?.full_name || 'My Store'}
                   </h2>
                   <p className="text-white/50 text-xs mt-0.5">
-                    {userBusinesses.length} listing{userBusinesses.length !== 1 ? 's' : ''} · {userBusinesses.filter((b: any) => b.status === 'active').length} active
+                    {userServices.length} service{userServices.length !== 1 ? 's' : ''} · {userServices.filter((s: any) => s.status === 'active').length} active
                     {userProfile?.barter_percentage > 0 && (
                       <span className="ml-2 bg-indigo-500/30 text-indigo-300 px-2 py-0.5 rounded-full text-[10px] font-semibold">
                         {userProfile.barter_percentage}% Barter
@@ -1273,7 +1287,7 @@ const Dashboard = () => {
                         className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium transition-all ${listingTab === 'services' ? 'bg-white text-gray-900 shadow-sm' : 'text-gray-500 hover:text-gray-700'}`}
                       >
                         <Store className="h-3.5 w-3.5" />
-                        Services {userBusinesses.length > 0 && <span className="ml-0.5 text-[10px] bg-violet-100 text-violet-600 px-1.5 py-0.5 rounded-full font-bold">{userBusinesses.length}</span>}
+                        Services {userServices.length > 0 && <span className="ml-0.5 text-[10px] bg-violet-100 text-violet-600 px-1.5 py-0.5 rounded-full font-bold">{userServices.length}</span>}
                       </button>
                     )}
                   </div>
@@ -1287,7 +1301,7 @@ const Dashboard = () => {
                           onClick={() => setListingFilter(f)}
                           className={`px-3 py-1.5 rounded-lg text-xs font-medium capitalize transition-all ${listingFilter === f ? 'bg-white text-gray-900 shadow-sm' : 'text-gray-500 hover:text-gray-700'}`}
                         >
-                          {f === 'all' ? `All (${userBusinesses.length})` : f}
+                          {f === 'all' ? `All (${userServices.length})` : f}
                         </button>
                       ))}
                     </div>
@@ -1413,7 +1427,7 @@ const Dashboard = () => {
 
                 {/* ── SERVICES TAB ── */}
                 {listingTab === 'services' && (
-                  userBusinesses.length === 0 ? (
+                  userServices.length === 0 ? (
                     <div className="text-center py-14">
                       <div className="w-16 h-16 rounded-2xl bg-indigo-50 flex items-center justify-center mx-auto mb-4">
                         <Store className="h-8 w-8 text-indigo-300" />
@@ -1424,19 +1438,18 @@ const Dashboard = () => {
                         <Plus className="h-4 w-4 mr-1.5" />{userProfile?.business_type === 'both' ? 'Add Product/Service' : userProfile?.business_type === 'product' ? 'Add Product' : 'Add Service'}
                       </Button>
                     </div>
-                  ) : (listingFilter !== 'all' && userBusinesses.filter((b: any) => b.status === listingFilter).length === 0) ? (
+                  ) : (listingFilter !== 'all' && userServices.filter((s: any) => s.status === listingFilter).length === 0) ? (
                     <div className="text-center py-10 text-gray-400">
                       <Filter className="h-6 w-6 mx-auto mb-2 opacity-40" />
                       <p className="text-sm">No {listingFilter} listings</p>
                     </div>
                   ) : (
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                      {(listingFilter === 'all' ? userBusinesses : userBusinesses.filter((b: any) => b.status === listingFilter)).map((listing: any) => (
+                      {(listingFilter === 'all' ? userServices : userServices.filter((s: any) => s.status === listingFilter)).map((listing: any) => (
                         <div key={listing.id} className="group border border-gray-100 rounded-xl p-4 hover:border-indigo-200 hover:shadow-sm transition-all">
                           <div className="flex items-start justify-between gap-2 mb-2">
                             <div className="flex-1 min-w-0">
-                              <p className="font-semibold text-gray-900 text-sm truncate">{listing.business_name}</p>
-                              <p className="text-sm text-gray-600 mt-0.5">{listing.category}</p>
+                              <p className="font-semibold text-gray-900 text-sm truncate">{listing.name}</p>
                             </div>
                             <Pill status={listing.status} />
                           </div>
@@ -1488,7 +1501,7 @@ const Dashboard = () => {
         {showNewListing && (
           <NewListingModal
             onClose={() => setShowNewListing(false)}
-            onCreated={() => { refreshBusinesses(); refetchProducts(); }}
+            onCreated={() => { refreshBusinesses(); refreshServices(); refetchProducts(); }}
             defaultBusinessType={userProfile?.business_type ?? null}
             defaultTab={listingTab === 'products' ? 'product' : 'service'}
           />

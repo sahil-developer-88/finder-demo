@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { messaging, getToken, onMessage, VAPID_KEY } from '@/lib/firebase';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
+import { showPushBanner } from '@/components/notifications/PushNotificationBanner';
 
 const notifSupported = () => typeof Notification !== 'undefined';
 
@@ -25,18 +26,9 @@ export const usePushNotifications = () => {
 
     const unsubscribe = onMessage(messaging, (payload) => {
       const { title, body } = payload.notification || {};
-      if (!title || Notification.permission !== 'granted') return;
-
-      const notif = new Notification(title, {
-        body: body || '',
-        icon: '/favicon.ico',
-      });
-
-      notif.onclick = () => {
-        window.focus();
-        window.dispatchEvent(new CustomEvent('fcm:navigate-inbox'));
-        notif.close();
-      };
+      if (!title) return;
+      const url = (payload.data as any)?.url || undefined;
+      showPushBanner({ title, body: body || '', url });
     });
 
     return () => unsubscribe();

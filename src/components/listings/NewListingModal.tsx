@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { X, Plus, Loader2, Store, Tag, MapPin, Phone, FileText, Percent, Package, DollarSign, Image, Zap, ArrowRight, ShoppingBag, Wrench } from 'lucide-react';
+import { X, Plus, Loader2, Store, Tag, FileText, Percent, Package, DollarSign, Image, Zap, ArrowRight, ShoppingBag, Wrench } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
@@ -107,10 +107,7 @@ const NewListingModal = ({ onClose, onCreated, defaultBusinessType, defaultTab }
       if (!productForm.pos_integration_id) e.pos_integration_id = 'Select a POS system';
     } else {
       if (!serviceForm.business_name.trim()) e.business_name = 'Required';
-      if (!serviceForm.category) e.category = 'Required';
       if (!serviceForm.description.trim()) e.description = 'Required';
-      if (!serviceForm.location.trim()) e.location = 'Required';
-      if (!serviceForm.contact_method) e.contact_method = 'Required';
     }
     setErrors(e);
     return Object.keys(e).length === 0;
@@ -143,17 +140,11 @@ const NewListingModal = ({ onClose, onCreated, defaultBusinessType, defaultTab }
       toast({ title: 'Product added!', description: 'Your product has been created in your POS and listed here.' });
     } else {
       // Insert into businesses table
-      const { error } = await supabase.from('businesses').insert({
-        user_id: user.id,
-        business_name: serviceForm.business_name.trim(),
-        category: serviceForm.category,
+      const { error } = await supabase.from('services').insert({
+        merchant_id: user.id,
+        name: serviceForm.business_name.trim(),
         description: serviceForm.description.trim(),
-        location: serviceForm.location.trim(),
-        contact_method: serviceForm.contact_method,
-        barter_percentage: serviceForm.barter_percentage ? Number(serviceForm.barter_percentage) : null,
-        services_offered: serviceForm.services_offered,
-        business_type: 'service',
-        status: 'pending',
+        status: 'active',
       });
 
       setSubmitting(false);
@@ -443,19 +434,6 @@ const NewListingModal = ({ onClose, onCreated, defaultBusinessType, defaultTab }
                 {errors.business_name && <p className="text-xs text-red-500 mt-1">{errors.business_name}</p>}
               </div>
 
-              {/* Category */}
-              <div>
-                <label className="flex items-center gap-1.5 text-xs font-semibold text-gray-700 mb-1.5">
-                  <Tag className="h-3.5 w-3.5 text-indigo-400" /> Category <span className="text-red-400">*</span>
-                </label>
-                <select value={serviceForm.category} onChange={e => setS('category', e.target.value)}
-                  className={`w-full h-10 px-3 rounded-lg border text-sm bg-white focus:outline-none focus:ring-2 focus:ring-indigo-400/30 ${errors.category ? 'border-red-400' : 'border-gray-200'}`}>
-                  <option value="">Select a category...</option>
-                  {categories.map(c => <option key={c.value} value={c.value}>{c.label}</option>)}
-                </select>
-                {errors.category && <p className="text-xs text-red-500 mt-1">{errors.category}</p>}
-              </div>
-
               {/* Description */}
               <div>
                 <label className="flex items-center gap-1.5 text-xs font-semibold text-gray-700 mb-1.5">
@@ -467,76 +445,6 @@ const NewListingModal = ({ onClose, onCreated, defaultBusinessType, defaultTab }
                 {errors.description && <p className="text-xs text-red-500 mt-1">{errors.description}</p>}
               </div>
 
-              {/* Services tags */}
-              <div>
-                <label className="text-xs font-semibold text-gray-700 mb-1.5 block">Services Offered</label>
-                <div className="flex gap-2">
-                  <Input value={serviceInput} onChange={e => setServiceInput(e.target.value)}
-                    onKeyDown={e => e.key === 'Enter' && (e.preventDefault(), addService())}
-                    placeholder="e.g. Pipe repair, Installation..."
-                    className="h-10 text-sm border-gray-200 flex-1" />
-                  <button onClick={addService}
-                    className="px-3 h-10 rounded-lg bg-indigo-50 text-indigo-600 hover:bg-indigo-100 transition-colors text-xs font-semibold shrink-0">
-                    Add
-                  </button>
-                </div>
-                {serviceForm.services_offered.length > 0 && (
-                  <div className="flex flex-wrap gap-1.5 mt-2">
-                    {serviceForm.services_offered.map(s => (
-                      <span key={s} className="flex items-center gap-1 bg-indigo-50 text-indigo-700 text-xs font-medium px-2.5 py-1 rounded-full">
-                        {s}
-                        <button onClick={() => removeService(s)} className="hover:text-red-500 transition-colors">
-                          <X className="h-3 w-3" />
-                        </button>
-                      </span>
-                    ))}
-                  </div>
-                )}
-              </div>
-
-              {/* Location + Contact */}
-              <div className="grid grid-cols-2 gap-3">
-                <div>
-                  <label className="flex items-center gap-1.5 text-xs font-semibold text-gray-700 mb-1.5">
-                    <MapPin className="h-3.5 w-3.5 text-indigo-400" /> Location <span className="text-red-400">*</span>
-                  </label>
-                  <Input value={serviceForm.location} onChange={e => setS('location', e.target.value)}
-                    placeholder="City, State"
-                    className={`h-10 text-sm ${errors.location ? 'border-red-400' : 'border-gray-200'}`} />
-                  {errors.location && <p className="text-xs text-red-500 mt-1">{errors.location}</p>}
-                </div>
-                <div>
-                  <label className="flex items-center gap-1.5 text-xs font-semibold text-gray-700 mb-1.5">
-                    <Phone className="h-3.5 w-3.5 text-indigo-400" /> Contact <span className="text-red-400">*</span>
-                  </label>
-                  <select value={serviceForm.contact_method} onChange={e => setS('contact_method', e.target.value)}
-                    className={`w-full h-10 px-3 rounded-lg border text-sm bg-white focus:outline-none focus:ring-2 focus:ring-indigo-400/30 ${errors.contact_method ? 'border-red-400' : 'border-gray-200'}`}>
-                    <option value="">Select...</option>
-                    {CONTACT_METHODS.map(m => <option key={m} value={m}>{m}</option>)}
-                  </select>
-                  {errors.contact_method && <p className="text-xs text-red-500 mt-1">{errors.contact_method}</p>}
-                </div>
-              </div>
-
-              {/* Barter % */}
-              <div>
-                <label className="flex items-center gap-1.5 text-xs font-semibold text-gray-700 mb-1.5">
-                  <Percent className="h-3.5 w-3.5 text-indigo-400" /> Barter Percentage <span className="text-gray-400 font-normal">(optional)</span>
-                </label>
-                <div className="flex gap-2">
-                  {['25', '50', '75', '100'].map(v => (
-                    <button key={v}
-                      onClick={() => setS('barter_percentage', serviceForm.barter_percentage === v ? '' : v)}
-                      className={`flex-1 h-10 rounded-lg text-sm font-semibold border transition-all ${
-                        serviceForm.barter_percentage === v
-                          ? 'bg-indigo-600 text-white border-indigo-600'
-                          : 'bg-white text-gray-600 border-gray-200 hover:border-indigo-300'
-                      }`}>
-                      {v}%
-                    </button>
-                  ))}
-                </div>
-              </div>
             </>
           )}
 

@@ -344,7 +344,7 @@ const InboxSection: React.FC<InboxSectionProps> = ({
                 >
                   <MessageSquare className="h-12 w-12 text-white" />
                 </div>
-                <h2 className="text-2xl font-light text-gray-700 mb-2">Valuehub Exchange Web</h2>
+                <h2 className="text-2xl font-light text-gray-700 mb-2">Value Exchange Web</h2>
                 <p className="text-sm text-gray-500 leading-relaxed">
                   Send and receive messages to connect with other members.
                 </p>
@@ -429,7 +429,7 @@ const InboxSection: React.FC<InboxSectionProps> = ({
                                     </div>
                                     <p className="text-sm font-semibold text-gray-900 mb-1">{parsed.service}</p>
                                     <p className="text-xs text-gray-500 mb-3">
-                                      {parsed.barter}% Valuehub Exchange Credits + {100 - (parsed.barter ?? 0)}% Cash
+                                      {parsed.barter}% Value Exchange Credits + {100 - (parsed.barter ?? 0)}% Cash
                                     </p>
                                     {!status && isRecipient && (
                                       <div className="flex gap-2">

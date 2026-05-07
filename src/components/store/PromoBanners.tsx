@@ -11,12 +11,21 @@ type AdBanner = {
   link_url: string | null;
 };
 
-const ROTATE_MS = 7500;
+const ROTATE_MS = 10000;
+
+const GRADIENTS = [
+  'linear-gradient(135deg, #4f46e5 0%, #7c3aed 100%)',
+  'linear-gradient(135deg, #059669 0%, #0d9488 100%)',
+  'linear-gradient(135deg, #e11d48 0%, #db2777 100%)',
+  'linear-gradient(135deg, #d97706 0%, #ea580c 100%)',
+  'linear-gradient(135deg, #2563eb 0%, #0891b2 100%)',
+];
 
 const PromoBanners = () => {
-  const [banners, setBanners]     = useState<AdBanner[]>([]);
-  const [current, setCurrent]     = useState(0);
-  const [loading, setLoading]     = useState(true);
+  const [banners, setBanners]   = useState<AdBanner[]>([]);
+  const [current, setCurrent]   = useState(0);
+  const [loading, setLoading]   = useState(true);
+  const [imgError, setImgError] = useState(false);
   const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
   useEffect(() => {
@@ -32,102 +41,148 @@ const PromoBanners = () => {
       });
   }, []);
 
-  // Auto-rotate
+  const startTimer = (len: number) => {
+    if (timerRef.current) clearInterval(timerRef.current);
+    timerRef.current = setInterval(() => {
+      setCurrent(c => (c + 1) % len);
+      setImgError(false);
+    }, ROTATE_MS);
+  };
+
   useEffect(() => {
     if (banners.length <= 1) return;
-    timerRef.current = setInterval(() => {
-      setCurrent(c => (c + 1) % banners.length);
-    }, ROTATE_MS);
+    startTimer(banners.length);
     return () => { if (timerRef.current) clearInterval(timerRef.current); };
   }, [banners.length]);
 
-  const prev = () => {
-    if (timerRef.current) clearInterval(timerRef.current);
-    setCurrent(c => (c - 1 + banners.length) % banners.length);
-    timerRef.current = setInterval(() => setCurrent(c => (c + 1) % banners.length), ROTATE_MS);
+  const go = (dir: 1 | -1) => {
+    setCurrent(c => (c + dir + banners.length) % banners.length);
+    setImgError(false);
+    startTimer(banners.length);
   };
 
-  const next = () => {
-    if (timerRef.current) clearInterval(timerRef.current);
-    setCurrent(c => (c + 1) % banners.length);
-    timerRef.current = setInterval(() => setCurrent(c => (c + 1) % banners.length), ROTATE_MS);
+  const goTo = (i: number) => {
+    setCurrent(i);
+    setImgError(false);
+    startTimer(banners.length);
   };
 
   if (loading || banners.length === 0) return null;
 
   const b = banners[current];
+  const gradient = GRADIENTS[current % GRADIENTS.length];
+  const hasImage = !!b.image_url && !imgError;
 
   return (
-    <div className="mb-5">
-      <div className="relative w-full rounded-2xl overflow-hidden bg-gray-100 border border-gray-200" style={{ height: 90 }}>
-        {/* Image */}
-        {b.image_url && (
-          <img
-            src={b.image_url}
-            alt={b.merchant_name}
-            className="absolute inset-0 w-full h-full object-cover"
-          />
+    <div className="relative w-full rounded-2xl overflow-hidden mb-5 select-none" style={{ height: 240 }}>
+
+      {/* Background */}
+      {hasImage ? (
+        <img
+          key={b.id}
+          src={b.image_url!}
+          alt={b.merchant_name}
+          className="absolute inset-0 w-full h-full object-cover transition-opacity duration-500"
+          onError={() => setImgError(true)}
+        />
+      ) : (
+        <div
+          className="absolute inset-0 transition-all duration-500"
+          style={{ background: gradient }}
+        />
+      )}
+
+      {/* Bottom gradient for text legibility */}
+      <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/30 to-transparent" />
+
+      {/* Top-left merchant badge */}
+      <div className="absolute top-3 left-4">
+        <span className="text-[11px] font-semibold bg-black/40 backdrop-blur-sm text-white px-2.5 py-1 rounded-full border border-white/20">
+          {b.merchant_name}
+        </span>
+      </div>
+
+      {/* Top-right Sponsored */}
+      <div className="absolute top-3 right-4">
+        <span className="text-[9px] text-white/50 font-medium">Sponsored</span>
+      </div>
+
+      {/* Bottom content */}
+      <div className="absolute bottom-0 left-0 right-0 px-5 pb-10">
+        {b.headline && (
+          <h3 className="text-white font-bold text-xl leading-tight drop-shadow-md line-clamp-2">
+            {b.headline}
+          </h3>
         )}
-
-        {/* Overlay gradient for text readability when image present */}
-        {b.image_url && (
-          <div className="absolute inset-0 bg-gradient-to-r from-black/40 via-transparent to-black/20" />
+        {b.sub_text && (
+          <p className="text-white/80 text-sm mt-1 leading-snug line-clamp-1 drop-shadow">
+            {b.sub_text}
+          </p>
         )}
-
-        {/* Text overlay */}
-        <div className={`absolute inset-0 flex flex-col justify-center px-4 ${b.image_url ? 'text-white' : 'text-gray-800'}`}>
-          {b.headline && <p className="text-sm font-bold leading-tight">{b.headline}</p>}
-          {b.sub_text && <p className={`text-xs mt-0.5 ${b.image_url ? 'text-white/80' : 'text-gray-500'}`}>{b.sub_text}</p>}
-          <p className={`text-[10px] mt-0.5 ${b.image_url ? 'text-white/50' : 'text-gray-400'}`}>{b.merchant_name}</p>
-        </div>
-
-        {/* Link */}
         {b.link_url && (
           <a
             href={b.link_url}
             target="_blank"
             rel="noreferrer"
-            className="absolute top-2 right-2 bg-white/20 hover:bg-white/40 rounded-full p-1 transition-colors"
             onClick={e => e.stopPropagation()}
+            className="inline-flex items-center gap-1.5 mt-2.5 bg-white text-gray-900 text-xs font-bold px-4 py-1.5 rounded-full hover:bg-white/90 transition-colors shadow-md"
           >
-            <ExternalLink className="h-3 w-3 text-white" />
+            View Deal <ExternalLink className="h-3 w-3" />
           </a>
-        )}
-
-        {/* Prev / Next arrows */}
-        {banners.length > 1 && (
-          <>
-            <button
-              onClick={prev}
-              className="absolute left-1 top-1/2 -translate-y-1/2 bg-black/30 hover:bg-black/50 text-white rounded-full p-0.5 transition-colors"
-            >
-              <ChevronLeft className="h-4 w-4" />
-            </button>
-            <button
-              onClick={next}
-              className="absolute right-6 top-1/2 -translate-y-1/2 bg-black/30 hover:bg-black/50 text-white rounded-full p-0.5 transition-colors"
-            >
-              <ChevronRight className="h-4 w-4" />
-            </button>
-          </>
-        )}
-
-        {/* Dot indicators */}
-        {banners.length > 1 && (
-          <div className="absolute bottom-2 left-1/2 -translate-x-1/2 flex gap-1">
-            {banners.map((_, i) => (
-              <button
-                key={i}
-                onClick={() => setCurrent(i)}
-                className={`h-1.5 rounded-full transition-all ${i === current ? 'w-4 bg-white' : 'w-1.5 bg-white/50'}`}
-              />
-            ))}
-          </div>
         )}
       </div>
 
-      {/* Sponsored label */}
-      <p className="text-[10px] text-gray-400 mt-1 text-right">Sponsored</p>
+      {/* Prev arrow */}
+      {banners.length > 1 && (
+        <button
+          onClick={() => go(-1)}
+          className="absolute left-2 top-1/2 -translate-y-1/2 bg-black/40 hover:bg-black/60 backdrop-blur-sm text-white rounded-full p-1.5 transition-colors z-10"
+        >
+          <ChevronLeft className="h-5 w-5" />
+        </button>
+      )}
+
+      {/* Next arrow */}
+      {banners.length > 1 && (
+        <button
+          onClick={() => go(1)}
+          className="absolute right-2 top-1/2 -translate-y-1/2 bg-black/40 hover:bg-black/60 backdrop-blur-sm text-white rounded-full p-1.5 transition-colors z-10"
+        >
+          <ChevronRight className="h-5 w-5" />
+        </button>
+      )}
+
+      {/* Dot indicators */}
+      {banners.length > 1 && (
+        <div className="absolute bottom-3 left-1/2 -translate-x-1/2 flex items-center gap-1.5 z-10">
+          {banners.map((_, i) => (
+            <button
+              key={i}
+              onClick={() => goTo(i)}
+              className={`rounded-full transition-all duration-300 ${
+                i === current
+                  ? 'w-5 h-2 bg-white'
+                  : 'w-2 h-2 bg-white/40 hover:bg-white/60'
+              }`}
+            />
+          ))}
+        </div>
+      )}
+
+      {/* Progress bar */}
+      {banners.length > 1 && (
+        <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-white/10">
+          <div
+            key={`${current}-bar`}
+            className="h-full bg-white/60"
+            style={{ animation: `heroBannerGrow ${ROTATE_MS}ms linear forwards` }}
+          />
+        </div>
+      )}
+
+      <style>{`
+        @keyframes heroBannerGrow { from { width: 0% } to { width: 100% } }
+      `}</style>
     </div>
   );
 };

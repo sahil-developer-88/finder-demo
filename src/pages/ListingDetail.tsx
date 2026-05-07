@@ -416,7 +416,7 @@ const ListingDetail = () => {
                 <div className="grid grid-cols-2 gap-3">
                   <div className="bg-emerald-50 rounded-2xl p-4 text-center border border-emerald-100">
                     <p className="text-2xl font-black text-emerald-600">{business.barter_percentage}%</p>
-                    <p className="text-xs text-emerald-600 font-semibold mt-1">Valuehub Exchange Credits</p>
+                    <p className="text-xs text-emerald-600 font-semibold mt-1">Value Exchange Credits</p>
                   </div>
                   <div className="bg-gray-50 rounded-2xl p-4 text-center border border-gray-100">
                     <p className="text-2xl font-black text-gray-700">{100 - (business.barter_percentage ?? 0)}%</p>

@@ -2,6 +2,7 @@ import React from 'react';
 import Header from './Header';
 import Footer from './Footer';
 import CartDrawer from './cart/CartDrawer';
+import PushNotificationBanner from './notifications/PushNotificationBanner';
 
 interface LayoutProps {
   children: React.ReactNode;
@@ -19,6 +20,7 @@ const Layout: React.FC<LayoutProps> = ({ children, showHeader = true, showFooter
       </main>
       {showFooter && <Footer />}
       {showCart && <CartDrawer />}
+      <PushNotificationBanner />
     </div>
   );
 };

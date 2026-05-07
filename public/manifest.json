@@ -1,7 +1,7 @@
 
 {
-  "name": "Swap Shop Finder",
-  "short_name": "SwapShop",
+  "name": "Value Exchange",
+  "short_name": "Value Exchange",
   "description": "Mobile-first barter exchange platform",
   "start_url": "/",
   "display": "standalone",
