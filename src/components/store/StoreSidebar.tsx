@@ -32,9 +32,9 @@ const StoreSidebar = ({ selectedCategory, onSelectCategory, onClearFilter }: Sto
         })}
       </aside>
 
-      {/* Mobile bottom category bar */}
-      <div className="md:hidden fixed bottom-16 left-0 right-0 bg-[#0f1117] border-t border-white/10 z-20 flex overflow-x-auto scrollbar-hide">
-        {SIDEBAR_CATS.slice(0, 8).map(cat => {
+      {/* Mobile top category bar */}
+      <div className="md:hidden fixed top-16 left-0 right-0 bg-[#0f1117] border-b border-white/10 z-20 flex overflow-x-auto scrollbar-hide">
+        {SIDEBAR_CATS.map(cat => {
           const Icon = cat.icon;
           const active = selectedCategory === cat.value;
           return (

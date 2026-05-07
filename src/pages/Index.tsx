@@ -236,7 +236,7 @@ const Index = () => {
 
       {/* ── Right content ────────────────────────────────────────────────────── */}
       <div className="flex-1 min-w-0 flex flex-col">
-        <main className="flex-1 px-4 lg:px-8 py-5">
+        <main className="flex-1 px-4 lg:px-8 py-5 pt-14 md:pt-5">
 
           {/* Search bar */}
           <div className="relative mb-5 max-w-xl">

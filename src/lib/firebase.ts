@@ -15,7 +15,13 @@ export const VAPID_KEY = 'BO-OTLnwSKJA-GEJSSHfcmpuDqpVjws2Da2nDDvW7AhkKq7haSWisQ
 
 const app = initializeApp(firebaseConfig);
 
-// messaging is only available in browser (not SSR)
-export const messaging = typeof window !== 'undefined' ? getMessaging(app) : null;
+// messaging is only available in browser environments that support it (not SSR, not iOS Safari < 16.4)
+export const messaging = (() => {
+  try {
+    return typeof window !== 'undefined' ? getMessaging(app) : null;
+  } catch {
+    return null;
+  }
+})();
 
 export { getToken, onMessage };
