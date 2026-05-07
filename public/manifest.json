@@ -1,7 +1,7 @@
 
 {
-  "name": "Value Exchange",
-  "short_name": "Value Exchange",
+  "name": "Valuehub Exchange",
+  "short_name": "Valuehub Exchange",
   "description": "Mobile-first barter exchange platform",
   "start_url": "/",
   "display": "standalone",

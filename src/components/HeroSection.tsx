@@ -149,7 +149,7 @@ const HeroSection = ({ searchTerm = '', onSearch }: HeroSectionProps) => {
             { icon: Users, label: 'Active Merchants', value: stats?.activeBusinesses },
             {
               icon: TrendingUp,
-              label: 'Value Exchanged',
+              label: 'Valuehub Exchanged',
               value: stats ? formatValue(stats.totalTransactions) : null,
             },
             { icon: Handshake, label: 'Successful Trades', value: stats?.totalTransactions },

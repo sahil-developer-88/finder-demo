@@ -218,7 +218,7 @@ const LandingPage = () => {
                       <Zap className="h-5 w-5 text-white" fill="white" />
                     </div>
                     <div>
-                      <p className="font-bold text-slate-900 text-sm">Value Exchange Network</p>
+                      <p className="font-bold text-slate-900 text-sm">Valuehub Exchange Network</p>
                       <p className="text-xs text-slate-400">Barter credits earned</p>
                     </div>
                   </div>
@@ -649,7 +649,7 @@ const LandingPage = () => {
               className="rounded-3xl p-8 space-y-3"
               style={{ background: 'linear-gradient(135deg, #f8faff 0%, #f3f0ff 100%)', border: '1px solid #e0e7ff' }}
             >
-              <p className="text-xs font-bold text-slate-400 uppercase tracking-widest mb-5">Old way vs. Value Exchange</p>
+              <p className="text-xs font-bold text-slate-400 uppercase tracking-widest mb-5">Old way vs. Valuehub Exchange</p>
               {VS_ROWS.map((row, i) => (
                 <div
                   key={row.old}

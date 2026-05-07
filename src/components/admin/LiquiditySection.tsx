@@ -362,7 +362,7 @@ const LiquiditySection = ({ sub, setSub, data, loading }: { sub: string; setSub:
                                   supabase.from('messages').insert({
                                     sender_id: adminUser.id,
                                     recipient_id: m.id,
-                                    content: `Hi ${m.name},\n\nWe noticed you haven't been active on Value Exchange for ${m.dormantDays || '90+'} days and you still have $${m.balance.toLocaleString()} in barter credits waiting to be used.\n\nLog in and browse available services — your credits are ready to spend!\n\nThank you,\nValue Exchange Admin`,
+                                    content: `Hi ${m.name},\n\nWe noticed you haven't been active on Valuehub Exchange for ${m.dormantDays || '90+'} days and you still have $${m.balance.toLocaleString()} in barter credits waiting to be used.\n\nLog in and browse available services — your credits are ready to spend!\n\nThank you,\nValuehub Exchange Admin`,
                                     message_type: 'text',
                                   }),
                                 ]);

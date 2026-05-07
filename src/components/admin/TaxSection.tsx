@@ -212,13 +212,13 @@ const TaxSection = ({ sub, setSub, w9Data: realW9, w9Loading, annualTotals: real
                                   supabase.from('notifications').insert({
                                     user_id: w.id,
                                     title: 'W-9 Required',
-                                    message: 'Your W-9 tax form is required to continue trading on Value Exchange. Please complete it in your Profile Settings under the Tax tab.',
+                                    message: 'Your W-9 tax form is required to continue trading on Valuehub Exchange. Please complete it in your Profile Settings under the Tax tab.',
                                     type: 'warning',
                                   }),
                                   supabase.from('messages').insert({
                                     sender_id: adminUser.id,
                                     recipient_id: w.id,
-                                    content: `Hi ${w.businessName},\n\nThis is a reminder from the Value Exchange admin team that your W-9 tax form has not been completed yet.\n\nPlease log in and go to Profile Settings → Tax to complete and submit your W-9. This is required to remain active on the platform.\n\nThank you,\nValue Exchange Admin`,
+                                    content: `Hi ${w.businessName},\n\nThis is a reminder from the Valuehub Exchange admin team that your W-9 tax form has not been completed yet.\n\nPlease log in and go to Profile Settings → Tax to complete and submit your W-9. This is required to remain active on the platform.\n\nThank you,\nValuehub Exchange Admin`,
                                     message_type: 'text',
                                   }),
                                 ]);
@@ -394,7 +394,7 @@ const TaxSection = ({ sub, setSub, w9Data: realW9, w9Loading, annualTotals: real
                             const w9 = w9Map[f.id];
                             await download1099BPdf({
                               taxYear: taxYear,
-                              payerName: 'Value Exchange',
+                              payerName: 'Valuehub Exchange',
                               payerAddress: '',
                               payerCityStateZip: '',
                               payerTin: '',
@@ -818,7 +818,7 @@ const TaxSection = ({ sub, setSub, w9Data: realW9, w9Loading, annualTotals: real
                                 supabase.from('messages').insert({
                                   sender_id: adminUser.id,
                                   recipient_id: w.id,
-                                  content: `Hi ${w.businessName},\n\nOur records show you have not submitted a W-9 tax form. Per IRS regulations, we are required to apply 24% backup withholding to your barter income until a valid W-9 is on file.\n\nPlease log in and complete your W-9 under Profile Settings → Tax as soon as possible.\n\nThank you,\nValue Exchange Admin`,
+                                  content: `Hi ${w.businessName},\n\nOur records show you have not submitted a W-9 tax form. Per IRS regulations, we are required to apply 24% backup withholding to your barter income until a valid W-9 is on file.\n\nPlease log in and complete your W-9 under Profile Settings → Tax as soon as possible.\n\nThank you,\nValuehub Exchange Admin`,
                                   message_type: 'text',
                                 }),
                               ]);
@@ -903,7 +903,7 @@ const TaxSection = ({ sub, setSub, w9Data: realW9, w9Loading, annualTotals: real
                                 supabase.from('messages').insert({
                                   sender_id: adminUser.id,
                                   recipient_id: w.id,
-                                  content: `Hi ${w.businessName},\n\nYour account has been flagged for backup withholding. You are not currently marked as exempt from IRS backup withholding requirements.\n\nPer IRS regulations, we are required to withhold 24% of your barter income and remit it to the IRS until your exemption status is resolved.\n\nPlease log in and review your W-9 information under Profile Settings → Tax. If you believe this is an error, ensure your W-9 certification is complete and that your exempt status is correctly indicated.\n\nThank you,\nValue Exchange Admin`,
+                                  content: `Hi ${w.businessName},\n\nYour account has been flagged for backup withholding. You are not currently marked as exempt from IRS backup withholding requirements.\n\nPer IRS regulations, we are required to withhold 24% of your barter income and remit it to the IRS until your exemption status is resolved.\n\nPlease log in and review your W-9 information under Profile Settings → Tax. If you believe this is an error, ensure your W-9 certification is complete and that your exempt status is correctly indicated.\n\nThank you,\nValuehub Exchange Admin`,
                                   message_type: 'text',
                                 }),
                               ]);
