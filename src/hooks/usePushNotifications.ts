@@ -3,15 +3,17 @@ import { messaging, getToken, onMessage, VAPID_KEY } from '@/lib/firebase';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
 
+const notifSupported = () => typeof Notification !== 'undefined';
+
 export const usePushNotifications = () => {
   const { user } = useAuth();
   const [notificationsEnabled, setNotificationsEnabled] = useState(
-    typeof Notification !== 'undefined' && Notification.permission === 'granted'
+    notifSupported() && Notification.permission === 'granted'
   );
 
   // If permission was already granted (e.g. returning user), init silently
   useEffect(() => {
-    if (!user || !messaging) return;
+    if (!user || !messaging || !notifSupported()) return;
     if (Notification.permission === 'granted') {
       registerAndSaveToken();
     }
@@ -19,7 +21,7 @@ export const usePushNotifications = () => {
 
   // Set up foreground message handler whenever messaging is ready
   useEffect(() => {
-    if (!user || !messaging) return;
+    if (!user || !messaging || !notifSupported()) return;
 
     const unsubscribe = onMessage(messaging, (payload) => {
       const { title, body } = payload.notification || {};
@@ -62,7 +64,7 @@ export const usePushNotifications = () => {
 
   // Must be called from a user-click handler (Firefox requirement)
   const enableNotifications = async () => {
-    if (!messaging || !user) return;
+    if (!messaging || !user || !notifSupported()) return;
     try {
       const permission = await Notification.requestPermission();
       if (permission !== 'granted') return;
