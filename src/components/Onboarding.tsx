@@ -460,10 +460,6 @@ const Onboarding: React.FC<OnboardingProps> = ({ onComplete }) => {
           });
           localStorage.removeItem('barterex_pending_referral');
         }
-        // Always call award — safe no-op if no pending referral exists in DB
-        await supabase.rpc('award_referral_points', {
-          p_referred_user_id: user.id,
-        });
       } catch (refLinkError) {
         console.error('Referral link (onboarding path) failed (non-fatal):', refLinkError);
       }

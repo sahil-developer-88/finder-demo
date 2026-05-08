@@ -58,10 +58,12 @@ const ListingDetail = () => {
   const chatInputRef = useRef<HTMLInputElement>(null);
   const [business, setBusiness] = useState<any>(null);
   const [products, setProducts] = useState<any[]>([]);
+  const [dbServices, setDbServices] = useState<{ id: string; name: string; description: string }[]>([]);
   const [loading, setLoading] = useState(true);
   const [productsLoading, setProductsLoading] = useState(true);
   const [productSearch, setProductSearch] = useState('');
   const [activeCategory, setActiveCategory] = useState('All');
+  const [activeTab, setActiveTab] = useState<'products' | 'services'>('products');
   const categoryRefs = useRef<Record<string, HTMLDivElement | null>>({});
 
   // Fetch business
@@ -77,7 +79,17 @@ const ListingDetail = () => {
         const { data: profileData } = await supabase
           .from('profiles').select('business_type').eq('user_id', businessData.user_id).single();
 
-        setBusiness({ ...businessData, business_type: profileData?.business_type || 'product' });
+        const btype = profileData?.business_type || 'product';
+        setBusiness({ ...businessData, business_type: btype });
+        setActiveTab(btype === 'service' ? 'services' : 'products');
+
+        const { data: svcData } = await supabase
+          .from('services')
+          .select('id, name, description')
+          .eq('merchant_id', businessData.user_id)
+          .eq('status', 'active')
+          .order('created_at');
+        setDbServices(svcData ?? []);
       } catch (error: any) {
         toast({ title: "Error", description: "Failed to load business details", variant: "destructive" });
       } finally {
@@ -182,7 +194,7 @@ const ListingDetail = () => {
 
   const openTrade = () => {
     if (!user) { navigate('/auth'); return; }
-    setChatService(isServiceBusiness ? (business.services_offered?.[0] ?? null) : null);
+    setChatService(hasServices ? (dbServices[0]?.name ?? null) : null);
     setTradeRequestSent(false);
     setChatOpen(true);
     if (business?.user_id) fetchMessages(business.user_id);
@@ -263,12 +275,15 @@ const ListingDetail = () => {
     </div>
   );
 
-  const isServiceBusiness = business.business_type === 'service';
-
-  const displayServices: string[] = business.services_offered ?? [];
+  const displayServices = dbServices;
+  const hasServices = displayServices.length > 0;
+  const isProductBusiness = business.business_type !== 'service';
+  const showTabs = hasServices && (isProductBusiness || products.length > 0);
+  const showServicesSection = showTabs ? activeTab === 'services' : hasServices && !isProductBusiness;
+  const showProductsSection = showTabs ? activeTab === 'products' : isProductBusiness;
 
   return (
-    <div className={`min-h-screen bg-gray-50 ${!isServiceBusiness && cartCount > 0 && merchantInfo?.id === business?.id ? 'pb-24' : 'pb-10'}`}>
+    <div className={`min-h-screen bg-gray-50 ${showProductsSection && cartCount > 0 && merchantInfo?.id === business?.id ? 'pb-24' : 'pb-10'}`}>
 
       {/* ── Hero ──────────────────────────────────────────────────────────────── */}
       <div className="relative w-full h-52 md:h-72 overflow-hidden">
@@ -327,8 +342,27 @@ const ListingDetail = () => {
             </div>
           )}
 
+          {/* ── Tabs (only when business has both products and services) ──── */}
+          {showTabs && (
+            <div className="flex gap-2 border-b border-gray-200 pb-0">
+              {(['products', 'services'] as const).map(tab => (
+                <button
+                  key={tab}
+                  onClick={() => setActiveTab(tab)}
+                  className={`px-5 py-2.5 text-sm font-semibold capitalize border-b-2 transition-colors -mb-px ${
+                    activeTab === tab
+                      ? 'border-indigo-600 text-indigo-600'
+                      : 'border-transparent text-gray-500 hover:text-gray-800'
+                  }`}
+                >
+                  {tab}
+                </button>
+              ))}
+            </div>
+          )}
+
           {/* ── SERVICE: services grid ──────────────────────────────────────── */}
-          {isServiceBusiness && (
+          {showServicesSection && (
             <div>
               <div className="flex items-center justify-between mb-3">
                 <h2 className="font-bold text-gray-900 text-lg">Services</h2>
@@ -342,7 +376,7 @@ const ListingDetail = () => {
                 </div>
               )}
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                {displayServices.map((service: string, i: number) => {
+                {displayServices.map((service, i) => {
                   const colors = [
                     { bg: 'bg-violet-500', light: 'bg-violet-50', text: 'text-violet-700', border: 'border-violet-100' },
                     { bg: 'bg-indigo-500', light: 'bg-indigo-50', text: 'text-indigo-700', border: 'border-indigo-100' },
@@ -354,11 +388,10 @@ const ListingDetail = () => {
                   const c = colors[i % colors.length];
                   return (
                     <button
-                      key={i}
-                      onClick={() => setDrawerService(service)}
+                      key={service.id}
+                      onClick={() => setDrawerService(service.name)}
                       className={`flex flex-col gap-3 p-4 rounded-2xl border ${c.border} ${c.light} hover:shadow-md hover:-translate-y-0.5 transition-all text-left`}
                     >
-                      {/* Top row */}
                       <div className="flex items-start justify-between">
                         <div className={`w-10 h-10 rounded-xl ${c.bg} flex items-center justify-center shrink-0`}>
                           <CheckCircle className="h-5 w-5 text-white" />
@@ -367,14 +400,15 @@ const ListingDetail = () => {
                           {business.barter_percentage}% Barter
                         </span>
                       </div>
-                      {/* Service name */}
                       <div>
-                        <p className="font-bold text-gray-900 text-sm leading-snug">{service}</p>
-                        <p className="text-xs text-gray-500 mt-0.5">
+                        <p className="font-bold text-gray-900 text-sm leading-snug">{service.name}</p>
+                        {service.description && (
+                          <p className="text-xs text-gray-500 mt-0.5 line-clamp-2">{service.description}</p>
+                        )}
+                        <p className="text-xs text-gray-400 mt-1">
                           {business.barter_percentage}% credits + {100 - (business.barter_percentage ?? 0)}% cash
                         </p>
                       </div>
-                      {/* CTA */}
                       <div className={`w-full py-2 rounded-xl ${c.bg} text-white text-xs font-bold text-center`}>
                         Get Quote →
                       </div>
@@ -443,6 +477,16 @@ const ListingDetail = () => {
                   </ul>
                 </div>
 
+                {/* Service description from DB */}
+                {drawerService && dbServices.find(s => s.name === drawerService)?.description && (
+                  <div>
+                    <p className="text-xs font-bold text-gray-500 uppercase tracking-wide mb-2">About this service</p>
+                    <p className="text-sm text-gray-600 leading-relaxed">
+                      {dbServices.find(s => s.name === drawerService)!.description}
+                    </p>
+                  </div>
+                )}
+
                 {/* About */}
                 {business.description && (
                   <div>
@@ -472,7 +516,7 @@ const ListingDetail = () => {
           </Sheet>
 
           {/* ── PRODUCT: category tabs + product grid ──────────────────────── */}
-          {!isServiceBusiness && (
+          {showProductsSection && (
             <div>
               {/* Search */}
               <div className="relative mb-4">
@@ -582,10 +626,14 @@ const ListingDetail = () => {
                 </div>
                 <div className="bg-indigo-50 rounded-xl p-3 text-center">
                   <p className="text-xl font-bold text-indigo-600">
-                    {isServiceBusiness ? (business.services_offered?.length ?? 0) : products.length}
+                    {showTabs
+                      ? (activeTab === 'services' ? displayServices.length : products.length)
+                      : (hasServices && !isProductBusiness ? displayServices.length : products.length)}
                   </p>
                   <p className="text-xs text-indigo-700 font-medium">
-                    {isServiceBusiness ? 'Services' : 'Products'}
+                    {showTabs
+                      ? (activeTab === 'services' ? 'Services' : 'Products')
+                      : (hasServices && !isProductBusiness ? 'Services' : 'Products')}
                   </p>
                 </div>
               </div>
@@ -808,7 +856,7 @@ const ListingDetail = () => {
       </AlertDialog>
 
       {/* ── Sticky bottom cart bar (products only) ────────────────────────── */}
-      {!isServiceBusiness && cartCount > 0 && merchantInfo?.id === business?.id && (
+      {showProductsSection && cartCount > 0 && merchantInfo?.id === business?.id && (
         <div className="fixed bottom-0 left-0 right-0 z-40 px-4 py-3 bg-white border-t border-gray-100 shadow-[0_-4px_16px_rgba(0,0,0,0.08)]">
           <button
             onClick={() => navigate('/checkout')}

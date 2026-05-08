@@ -95,20 +95,31 @@ const PromoBanners = () => {
       {/* Bottom gradient for text legibility */}
       <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/30 to-transparent" />
 
+      {/* Full-banner clickable link */}
+      {b.link_url && (
+        <a
+          href={b.link_url}
+          target="_blank"
+          rel="noreferrer"
+          className="absolute inset-0 z-[1]"
+          aria-label={`Visit ${b.merchant_name}`}
+        />
+      )}
+
       {/* Top-left merchant badge */}
-      <div className="absolute top-3 left-4">
+      <div className="absolute top-3 left-4 z-[5]">
         <span className="text-[11px] font-semibold bg-black/40 backdrop-blur-sm text-white px-2.5 py-1 rounded-full border border-white/20">
           {b.merchant_name}
         </span>
       </div>
 
       {/* Top-right Sponsored */}
-      <div className="absolute top-3 right-4">
+      <div className="absolute top-3 right-4 z-[5]">
         <span className="text-[9px] text-white/50 font-medium">Sponsored</span>
       </div>
 
       {/* Bottom content */}
-      <div className="absolute bottom-0 left-0 right-0 px-5 pb-10">
+      <div className="absolute bottom-0 left-0 right-0 px-5 pb-10 z-[5]">
         {b.headline && (
           <h3 className="text-white font-bold text-xl leading-tight drop-shadow-md line-clamp-2">
             {b.headline}
@@ -124,7 +135,6 @@ const PromoBanners = () => {
             href={b.link_url}
             target="_blank"
             rel="noreferrer"
-            onClick={e => e.stopPropagation()}
             className="inline-flex items-center gap-1.5 mt-2.5 bg-white text-gray-900 text-xs font-bold px-4 py-1.5 rounded-full hover:bg-white/90 transition-colors shadow-md"
           >
             View Deal <ExternalLink className="h-3 w-3" />

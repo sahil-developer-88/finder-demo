@@ -102,12 +102,19 @@ export function useLedger() {
     setLoading(true);
     setError(null);
 
-    const { data, error: fetchError } = await supabase
-      .from('ledger_entries')
-      .select('*')
-      .eq('user_id', user.id)
-      .order('created_at', { ascending: false })
-      .limit(200);
+    const [{ data, error: fetchError }, { data: credits }] = await Promise.all([
+      supabase
+        .from('ledger_entries')
+        .select('*')
+        .eq('user_id', user.id)
+        .order('created_at', { ascending: false })
+        .limit(200),
+      supabase
+        .from('user_credits')
+        .select('available_credits')
+        .eq('user_id', user.id)
+        .maybeSingle(),
+    ]);
 
     if (fetchError) {
       setError(fetchError.message);
@@ -118,7 +125,14 @@ export function useLedger() {
     const raw = (data ?? []) as Omit<LedgerEntry, 'cash_balance_after' | 'barter_balance_after'>[];
     const enriched = computeRunningBalances(raw);
     setEntries(enriched);
-    setSummary(computeSummary(enriched));
+
+    // Use the real balance from user_credits — ledger entries are capped at 200 rows
+    // so computing balance from them gives wrong results when there are more entries
+    const computed = computeSummary(enriched);
+    setSummary({
+      ...computed,
+      currentBarterBalance: credits?.available_credits ?? computed.currentBarterBalance,
+    });
     setLoading(false);
   }, [user]);
 

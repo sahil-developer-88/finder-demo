@@ -204,7 +204,15 @@ const TradeRequestsPage = ({ embedded = false }: { embedded?: boolean }) => {
 
   const handleMarkComplete = (item: any) => {
     setReviewTrade(item);
-    supabase.from('trade_requests').update({ status: 'completed' }).eq('id', item.id).then(() => fetchRequests());
+    supabase.from('trade_requests')
+      .update({ status: 'completed' })
+      .eq('id', item.id)
+      .then(() => {
+        fetchRequests();
+        // Award referral points to both participants if either was referred — RPC is a no-op if no pending referral exists
+        if (item.merchant_id) supabase.rpc('award_referral_points', { p_referred_user_id: item.merchant_id }).catch(() => {});
+        if (item.sender_id)   supabase.rpc('award_referral_points', { p_referred_user_id: item.sender_id  }).catch(() => {});
+      });
   };
 
   const handleSubmitReview = async (rating: number, comment: string) => {

@@ -90,7 +90,6 @@ const Auth = () => {
           if (storedCode) {
             try {
               await supabase.rpc('create_referral_link', { p_referred_user_id: existingSession.user.id, p_referral_code: storedCode });
-              await supabase.rpc('award_referral_points', { p_referred_user_id: existingSession.user.id });
             } catch {}
             localStorage.removeItem('barterex_pending_referral');
           }
@@ -131,7 +130,6 @@ const Auth = () => {
         if (storedCode) {
           try {
             await supabase.rpc('create_referral_link', { p_referred_user_id: data.user.id, p_referral_code: storedCode });
-            await supabase.rpc('award_referral_points', { p_referred_user_id: data.user.id });
           } catch {}
           localStorage.removeItem('barterex_pending_referral');
         }

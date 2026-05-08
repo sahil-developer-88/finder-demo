@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -7,8 +7,11 @@ import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
 import {
   Image, Bell, Plus, Trash2, CheckCircle, XCircle, Loader2,
-  Send, Eye, EyeOff, ExternalLink,
+  Send, Eye, EyeOff, ExternalLink, ChevronDown,
 } from 'lucide-react';
+
+type Business = { id: string; business_name: string; category: string; user_id: string; business_type: string };
+type LinkMode = 'product' | 'service';
 
 type Banner = {
   id: string;
@@ -42,6 +45,66 @@ const AdsSection = ({ activeSubTab }: { activeSubTab: string }) => {
     link_url: '',
     expires_at: '',
   });
+
+  // ── Business picker state ──────────────────────────────────────────────────
+  const [businesses, setBusinesses]       = useState<Business[]>([]);
+  const [bizSearch, setBizSearch]         = useState('');
+  const [bizOpen, setBizOpen]             = useState(false);
+  const [selectedBiz, setSelectedBiz]     = useState<Business | null>(null);
+  const [linkMode, setLinkMode]           = useState<LinkMode>('product');
+  const bizRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    const loadBusinesses = async () => {
+      const { data: bizData } = await supabase
+        .from('businesses')
+        .select('id, business_name, category, user_id')
+        .eq('status', 'active')
+        .order('business_name');
+      if (!bizData?.length) return;
+
+      const { data: profileData } = await supabase
+        .from('profiles')
+        .select('user_id, business_type')
+        .in('user_id', bizData.map(b => b.user_id));
+
+      const typeMap = Object.fromEntries(
+        (profileData ?? []).map(p => [p.user_id, p.business_type ?? 'product'])
+      );
+
+      setBusinesses(bizData.map(b => ({ ...b, business_type: typeMap[b.user_id] ?? 'product' })));
+    };
+    loadBusinesses();
+  }, []);
+
+  useEffect(() => {
+    const handler = (e: MouseEvent) => {
+      if (bizRef.current && !bizRef.current.contains(e.target as Node)) setBizOpen(false);
+    };
+    document.addEventListener('mousedown', handler);
+    return () => document.removeEventListener('mousedown', handler);
+  }, []);
+
+  const filteredBiz = businesses.filter(b =>
+    b.business_name.toLowerCase().includes(bizSearch.toLowerCase()) ||
+    b.category.toLowerCase().includes(bizSearch.toLowerCase())
+  );
+
+  const selectBusiness = (b: Business) => {
+    const defaultMode: LinkMode = b.business_type === 'service' ? 'service' : 'product';
+    const storeUrl = defaultMode === 'service' ? `/service/${b.id}` : `/listing/${b.id}`;
+    setSelectedBiz(b);
+    setLinkMode(defaultMode);
+    setForm(f => ({ ...f, merchant_name: b.business_name, link_url: storeUrl }));
+    setBizSearch(b.business_name);
+    setBizOpen(false);
+  };
+
+  const changeLinkMode = (mode: LinkMode) => {
+    if (!selectedBiz) return;
+    setLinkMode(mode);
+    setForm(f => ({ ...f, link_url: mode === 'service' ? `/service/${selectedBiz.id}` : `/listing/${selectedBiz.id}` }));
+  };
 
   // ── Push state ─────────────────────────────────────────────────────────────
   const [pushTitle, setPushTitle]   = useState('');
@@ -82,6 +145,9 @@ const AdsSection = ({ activeSubTab }: { activeSubTab: string }) => {
     if (error) { setBError(error.message); }
     else {
       setForm({ merchant_name: '', image_url: '', headline: '', sub_text: '', link_url: '', expires_at: '' });
+      setBizSearch('');
+      setSelectedBiz(null);
+      setLinkMode('product');
       setShowForm(false);
       fetchBanners();
     }
@@ -159,7 +225,7 @@ const AdsSection = ({ activeSubTab }: { activeSubTab: string }) => {
             <CardHeader className="pb-3">
               <CardTitle className="text-base flex items-center justify-between">
                 <span className="flex items-center gap-2"><Image className="h-4 w-4 text-indigo-500" /> Rotating Banners</span>
-                <Button size="sm" onClick={() => setShowForm(v => !v)}>
+                <Button size="sm" onClick={() => { setShowForm(v => !v); if (showForm) { setBizSearch(''); setSelectedBiz(null); setLinkMode('product'); setForm({ merchant_name: '', image_url: '', headline: '', sub_text: '', link_url: '', expires_at: '' }); } }}>
                   <Plus className="h-4 w-4 mr-1" />{showForm ? 'Cancel' : 'Add Banner'}
                 </Button>
               </CardTitle>
@@ -168,9 +234,58 @@ const AdsSection = ({ activeSubTab }: { activeSubTab: string }) => {
             {showForm && (
               <CardContent className="pt-0 border-t">
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mt-4">
-                  <div className="sm:col-span-2">
+                  <div className="sm:col-span-2" ref={bizRef}>
                     <label className="text-xs font-semibold text-gray-500 uppercase tracking-wide block mb-1">Merchant Name *</label>
-                    <Input value={form.merchant_name} onChange={e => setForm(f => ({ ...f, merchant_name: e.target.value }))} placeholder="e.g. Top USA Flooring" />
+                    <div className="relative">
+                      <Input
+                        value={bizSearch}
+                        onChange={e => { setBizSearch(e.target.value); setBizOpen(true); setForm(f => ({ ...f, merchant_name: e.target.value })); }}
+                        onFocus={() => setBizOpen(true)}
+                        placeholder="Search or type merchant name…"
+                      />
+                      <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400 pointer-events-none" />
+                      {bizOpen && filteredBiz.length > 0 && (
+                        <ul className="absolute z-50 mt-1 w-full bg-white border border-gray-200 rounded-lg shadow-lg max-h-52 overflow-y-auto">
+                          {filteredBiz.map(b => (
+                            <li
+                              key={b.id}
+                              onMouseDown={() => selectBusiness(b)}
+                              className="flex items-center justify-between px-3 py-2 hover:bg-indigo-50 cursor-pointer"
+                            >
+                              <span className="text-sm font-medium text-gray-800">{b.business_name}</span>
+                              <div className="flex items-center gap-1.5 ml-2 shrink-0">
+                                <span className="text-xs text-gray-400">{b.category}</span>
+                                <span className={`text-[10px] font-semibold px-1.5 py-0.5 rounded-full ${b.business_type === 'service' ? 'bg-blue-100 text-blue-600' : 'bg-emerald-100 text-emerald-600'}`}>
+                                  {b.business_type === 'service' ? 'Service' : 'Product'}
+                                </span>
+                              </div>
+                            </li>
+                          ))}
+                        </ul>
+                      )}
+                    </div>
+                    {selectedBiz && (
+                      <div className="mt-2 space-y-1">
+                        <p className="text-xs text-gray-500 font-medium">Link to which page?</p>
+                        <div className="flex gap-2">
+                          <button
+                            type="button"
+                            onClick={() => changeLinkMode('product')}
+                            className={`text-xs px-3 py-1.5 rounded-full border font-semibold transition-colors ${linkMode === 'product' ? 'bg-emerald-500 text-white border-emerald-500' : 'bg-white text-gray-500 border-gray-200 hover:border-emerald-400'}`}
+                          >
+                            Product Store
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => changeLinkMode('service')}
+                            className={`text-xs px-3 py-1.5 rounded-full border font-semibold transition-colors ${linkMode === 'service' ? 'bg-blue-500 text-white border-blue-500' : 'bg-white text-gray-500 border-gray-200 hover:border-blue-400'}`}
+                          >
+                            Service Page
+                          </button>
+                        </div>
+                        <p className="text-xs text-indigo-500 font-mono">{form.link_url}</p>
+                      </div>
+                    )}
                   </div>
                   <div className="sm:col-span-2">
                     <label className="text-xs font-semibold text-gray-500 uppercase tracking-wide block mb-1">Image URL</label>

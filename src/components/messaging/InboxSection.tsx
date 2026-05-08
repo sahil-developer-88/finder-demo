@@ -15,6 +15,7 @@ import {
   PopoverTrigger,
 } from '@/components/ui/popover';
 import MerchantSearchCombobox from '@/components/payment-requests/MerchantSearchCombobox';
+import { usePresence } from '@/hooks/usePresence';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 import PendingApprovalModal from '@/components/ui/PendingApprovalModal';
@@ -89,6 +90,7 @@ const InboxSection: React.FC<InboxSectionProps> = ({
   tradeRequest,
 }) => {
   const { user } = useAuth();
+  const { isUserOnline } = usePresence();
   const { toast } = useToast();
   const { conversations, messages, loading, fetchMessages, sendMessage } = useMessages();
   const [pendingModalOpen, setPendingModalOpen] = useState(false);
@@ -371,7 +373,10 @@ const InboxSection: React.FC<InboxSectionProps> = ({
                 <Av name={displayName} size={40} />
                 <div className="flex-1 min-w-0">
                   <p className="font-semibold text-[15px] text-gray-900 truncate">{displayName}</p>
-                  <p className="text-[12px] text-[#059669]">online</p>
+                  {selectedId && isUserOnline(selectedId)
+                    ? <p className="text-[12px] text-[#059669]">online</p>
+                    : <p className="text-[12px] text-gray-400">offline</p>
+                  }
                 </div>
               </div>
 
