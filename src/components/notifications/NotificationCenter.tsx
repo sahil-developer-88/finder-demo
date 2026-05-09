@@ -5,20 +5,9 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { ScrollArea } from '@/components/ui/scroll-area';
-import { useNotifications } from '@/hooks/useNotifications';
+import { useNotifications, resolveNotifUrl } from '@/hooks/useNotifications';
 import { formatDistanceToNow } from 'date-fns';
 import { useNavigate } from 'react-router-dom';
-
-const BARTER_NOTIF_TAB = '/account-dashboard?tab=trade-send-request&tsub=Barter+Notifications';
-
-const NOTIFICATION_LINKS: Record<string, string> = {
-  'Barter Credits Pending':  '/account-dashboard?tab=trade-send-request&tsub=Trade+Requests',
-  'Barter Credits Received': BARTER_NOTIF_TAB,
-  'Barter Credits Accepted': BARTER_NOTIF_TAB,
-  'Barter Credits Debited':  BARTER_NOTIF_TAB,
-  'Barter Send Rejected':    BARTER_NOTIF_TAB,
-  'Barter Send Initiated':   BARTER_NOTIF_TAB,
-};
 
 const NotificationCenter = () => {
   const { notifications, unreadCount, markAsRead, markAllAsRead, loading } = useNotifications();
@@ -93,8 +82,11 @@ const NotificationCenter = () => {
                   }`}
                   onClick={() => {
                     if (!notification.read) markAsRead(notification.id);
-                    const link = NOTIFICATION_LINKS[notification.title];
-                    if (link) navigate(link);
+                    const url = resolveNotifUrl(notification);
+                    if (url) {
+                      if (url.startsWith('http')) window.open(url, '_blank', 'noreferrer');
+                      else navigate(url);
+                    }
                   }}
                 >
                   <div className="flex items-start justify-between">

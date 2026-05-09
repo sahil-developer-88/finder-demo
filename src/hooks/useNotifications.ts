@@ -4,7 +4,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
 import { toast } from '@/hooks/use-toast';
 
-interface Notification {
+export interface Notification {
   id: string;
   title: string;
   message: string;
@@ -13,7 +13,32 @@ interface Notification {
   created_at: string;
   updated_at: string;
   user_id: string;
+  action_url: string | null;
 }
+
+// Shared resolver — action_url wins, then title/message pattern matching
+const NOTIF_URL_MAP: [string, string][] = [
+  ['Barter Credits Pending',   '/account-dashboard?tab=trade-send-request&tsub=Trade+Requests'],
+  ['Barter Credits Received',  '/account-dashboard?tab=trade-send-request&tsub=Barter+Notifications'],
+  ['Barter Credits Accepted',  '/account-dashboard?tab=trade-send-request&tsub=Barter+Notifications'],
+  ['Barter Credits Debited',   '/account-dashboard?tab=trade-send-request&tsub=Barter+Notifications'],
+  ['Barter Send Rejected',     '/account-dashboard?tab=trade-send-request&tsub=Barter+Notifications'],
+  ['Barter Send Initiated',    '/account-dashboard?tab=trade-send-request&tsub=Barter+Notifications'],
+  ['Trade Request',            '/account-dashboard?tab=trade-requests'],
+  ['Payment Request',          '/payment-requests'],
+  ['Order',                    '/merchant/orders'],
+  ['Review',                   '/account-dashboard?tab=reviews'],
+];
+
+export const resolveNotifUrl = (n: Notification): string | null => {
+  if (n.action_url) return n.action_url;
+  if (n.message?.startsWith('trade_request:')) return '/account-dashboard?tab=trade-requests';
+  const title = n.title?.toLowerCase() ?? '';
+  for (const [key, url] of NOTIF_URL_MAP) {
+    if (title.includes(key.toLowerCase())) return url;
+  }
+  return null;
+};
 
 const POLL_INTERVAL = 20000; // fallback poll every 20s
 

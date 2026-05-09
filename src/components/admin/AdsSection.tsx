@@ -107,12 +107,49 @@ const AdsSection = ({ activeSubTab }: { activeSubTab: string }) => {
   };
 
   // ── Push state ─────────────────────────────────────────────────────────────
-  const [pushTitle, setPushTitle]   = useState('');
-  const [pushBody, setPushBody]     = useState('');
-  const [pushType, setPushType]     = useState('announcement');
-  const [pSending, setPSending]     = useState(false);
-  const [pSuccess, setPSuccess]     = useState('');
-  const [pError, setPError]         = useState('');
+  const [pushTitle, setPushTitle]         = useState('');
+  const [pushBody, setPushBody]           = useState('');
+  const [pushType, setPushType]           = useState('announcement');
+  const [pushActionUrl, setPushActionUrl] = useState('');
+  const [pSending, setPSending]           = useState(false);
+  const [pSuccess, setPSuccess]           = useState('');
+  const [pError, setPError]               = useState('');
+
+  // ── Push business picker state ─────────────────────────────────────────────
+  const [pushBizSearch, setPushBizSearch]     = useState('');
+  const [pushBizOpen, setPushBizOpen]         = useState(false);
+  const [pushSelectedBiz, setPushSelectedBiz] = useState<Business | null>(null);
+  const [pushLinkMode, setPushLinkMode]       = useState<LinkMode>('product');
+  const pushBizRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    const handler = (e: MouseEvent) => {
+      if (pushBizRef.current && !pushBizRef.current.contains(e.target as Node)) setPushBizOpen(false);
+    };
+    document.addEventListener('mousedown', handler);
+    return () => document.removeEventListener('mousedown', handler);
+  }, []);
+
+  const filteredPushBiz = businesses.filter(b =>
+    b.business_name.toLowerCase().includes(pushBizSearch.toLowerCase()) ||
+    b.category.toLowerCase().includes(pushBizSearch.toLowerCase())
+  );
+
+  const selectPushBusiness = (b: Business) => {
+    const defaultMode: LinkMode = b.business_type === 'service' ? 'service' : 'product';
+    const url = defaultMode === 'service' ? `/service/${b.id}` : `/listing/${b.id}`;
+    setPushSelectedBiz(b);
+    setPushLinkMode(defaultMode);
+    setPushActionUrl(url);
+    setPushBizSearch(b.business_name);
+    setPushBizOpen(false);
+  };
+
+  const changePushLinkMode = (mode: LinkMode) => {
+    if (!pushSelectedBiz) return;
+    setPushLinkMode(mode);
+    setPushActionUrl(mode === 'service' ? `/service/${pushSelectedBiz.id}` : `/listing/${pushSelectedBiz.id}`);
+  };
 
   // ── Fetch banners ──────────────────────────────────────────────────────────
   const fetchBanners = async () => {
@@ -199,6 +236,7 @@ const AdsSection = ({ activeSubTab }: { activeSubTab: string }) => {
       message:    pushBody.trim(),
       type:       typeMap[pushType] ?? 'info',
       read:       false,
+      action_url: pushActionUrl.trim() || null,
     }));
 
     const { error } = await supabase.from('notifications').insert(rows);
@@ -209,6 +247,10 @@ const AdsSection = ({ activeSubTab }: { activeSubTab: string }) => {
       setPushTitle('');
       setPushBody('');
       setPushType('announcement');
+      setPushActionUrl('');
+      setPushBizSearch('');
+      setPushSelectedBiz(null);
+      setPushLinkMode('product');
     }
     setPSending(false);
   };
@@ -440,6 +482,61 @@ const AdsSection = ({ activeSubTab }: { activeSubTab: string }) => {
                   <option value="clearance">Inventory Clearance</option>
                   <option value="alert">Platform Alert</option>
                 </select>
+              </div>
+
+              {/* Action URL — optional link when notification is tapped */}
+              <div ref={pushBizRef}>
+                <label className="text-xs font-semibold text-gray-500 uppercase tracking-wide block mb-1">
+                  Link To <span className="font-normal text-gray-400">(optional — tap notification opens this)</span>
+                </label>
+                <div className="relative">
+                  <Input
+                    value={pushBizSearch}
+                    onChange={e => { setPushBizSearch(e.target.value); setPushBizOpen(true); if (!e.target.value) { setPushSelectedBiz(null); setPushActionUrl(''); } }}
+                    onFocus={() => setPushBizOpen(true)}
+                    placeholder="Search a merchant store…"
+                  />
+                  <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400 pointer-events-none" />
+                  {pushBizOpen && filteredPushBiz.length > 0 && (
+                    <ul className="absolute z-50 mt-1 w-full bg-white border border-gray-200 rounded-lg shadow-lg max-h-48 overflow-y-auto">
+                      {filteredPushBiz.map(b => (
+                        <li
+                          key={b.id}
+                          onMouseDown={() => selectPushBusiness(b)}
+                          className="flex items-center justify-between px-3 py-2 hover:bg-indigo-50 cursor-pointer"
+                        >
+                          <span className="text-sm font-medium text-gray-800">{b.business_name}</span>
+                          <span className={`text-[10px] font-semibold px-1.5 py-0.5 rounded-full ${b.business_type === 'service' ? 'bg-blue-100 text-blue-600' : 'bg-emerald-100 text-emerald-600'}`}>
+                            {b.business_type === 'service' ? 'Service' : 'Product'}
+                          </span>
+                        </li>
+                      ))}
+                    </ul>
+                  )}
+                </div>
+                {pushSelectedBiz && (
+                  <div className="mt-2 space-y-1">
+                    <div className="flex gap-2">
+                      <button type="button" onClick={() => changePushLinkMode('product')}
+                        className={`text-xs px-3 py-1.5 rounded-full border font-semibold transition-colors ${pushLinkMode === 'product' ? 'bg-emerald-500 text-white border-emerald-500' : 'bg-white text-gray-500 border-gray-200 hover:border-emerald-400'}`}>
+                        Product Store
+                      </button>
+                      <button type="button" onClick={() => changePushLinkMode('service')}
+                        className={`text-xs px-3 py-1.5 rounded-full border font-semibold transition-colors ${pushLinkMode === 'service' ? 'bg-blue-500 text-white border-blue-500' : 'bg-white text-gray-500 border-gray-200 hover:border-blue-400'}`}>
+                        Service Page
+                      </button>
+                    </div>
+                    <p className="text-xs text-indigo-500 font-mono">{pushActionUrl}</p>
+                  </div>
+                )}
+                {!pushSelectedBiz && (
+                  <Input
+                    className="mt-2"
+                    value={pushActionUrl}
+                    onChange={e => setPushActionUrl(e.target.value)}
+                    placeholder="Or paste a custom URL…"
+                  />
+                )}
               </div>
 
               {pError && <p className="text-xs text-red-500">{pError}</p>}

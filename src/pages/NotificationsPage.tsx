@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Bell, ArrowDownLeft, ArrowUpRight, CheckCheck, Check, Inbox, Coins, X } from 'lucide-react';
-import { useNotifications } from '@/hooks/useNotifications';
+import { useNotifications, resolveNotifUrl } from '@/hooks/useNotifications';
 import { useAuth } from '@/hooks/useAuth';
 import { supabase } from '@/integrations/supabase/client';
 import { useNavigate } from 'react-router-dom';
@@ -43,8 +43,10 @@ const NotificationsPage = () => {
 
   const handleNotificationClick = (n: any) => {
     if (!n.read) markAsRead(n.id);
-    if (n.message?.startsWith('trade_request:') || n.title?.toLowerCase().includes('trade request')) {
-      navigate('/account-dashboard?tab=trade-requests');
+    const url = resolveNotifUrl(n);
+    if (url) {
+      if (url.startsWith('http')) window.open(url, '_blank', 'noreferrer');
+      else navigate(url);
     }
   };
   const [filter, setFilter] = useState<Filter>('all');
