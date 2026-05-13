@@ -5,7 +5,7 @@ import { Search, Loader2, CheckCircle, Clock } from 'lucide-react';
 import { SectionTitle, TH, TD } from './shared/ui';
 import { supabase } from '@/integrations/supabase/client';
 
-const UsersSection = ({ users, loading }: { users: any[]; loading: boolean }) => {
+const UsersSection = ({ users, loading, onViewAccount }: { users: any[]; loading: boolean; onViewAccount?: (userId: string) => void }) => {
   const [search, setSearch] = useState('');
   const [page, setPage]     = useState(1);
   const [sort, setSort]     = useState<'credits-desc' | 'credits-asc' | 'name' | 'joined-desc' | 'joined-asc' | 'w9-done' | 'w9-pending'>('joined-desc');
@@ -82,7 +82,11 @@ const UsersSection = ({ users, loading }: { users: any[]; loading: boolean }) =>
                   ) : paginated.map(u => {
                     const initials = (u.full_name || u.email || '?').split(' ').map((n: string) => n[0]).join('').toUpperCase().slice(0, 2);
                     return (
-                      <tr key={u.user_id} className="hover:bg-gray-50">
+                      <tr
+                        key={u.user_id}
+                        onClick={() => onViewAccount?.(u.user_id)}
+                        className={`hover:bg-gray-50 ${onViewAccount ? 'cursor-pointer' : ''}`}
+                      >
                         <TD>
                           <div className="flex items-center gap-3">
                             <div className="h-8 w-8 rounded-full bg-emerald-100 text-emerald-700 flex items-center justify-center text-xs font-semibold shrink-0">{initials}</div>

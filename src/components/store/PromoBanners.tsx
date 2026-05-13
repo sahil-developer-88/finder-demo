@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { supabase } from '@/integrations/supabase/client';
-import { ChevronLeft, ChevronRight, ExternalLink } from 'lucide-react';
+import { ChevronLeft, ChevronRight } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
 
 type AdBanner = {
   id: string;
@@ -22,6 +23,7 @@ const GRADIENTS = [
 ];
 
 const PromoBanners = () => {
+  const navigate = useNavigate();
   const [banners, setBanners]   = useState<AdBanner[]>([]);
   const [current, setCurrent]   = useState(0);
   const [loading, setLoading]   = useState(true);
@@ -74,7 +76,15 @@ const PromoBanners = () => {
   const hasImage = !!b.image_url && !imgError;
 
   return (
-    <div className="relative w-full rounded-2xl overflow-hidden mb-5 select-none" style={{ height: 240 }}>
+    <div
+      className={`relative w-full rounded-2xl overflow-hidden mb-5 select-none ${b.link_url ? 'cursor-pointer' : ''}`}
+      style={{ height: 240 }}
+      onClick={() => {
+        if (!b.link_url) return;
+        if (b.link_url.startsWith('http')) window.open(b.link_url, '_blank', 'noreferrer');
+        else navigate(b.link_url);
+      }}
+    >
 
       {/* Background */}
       {hasImage ? (
@@ -95,17 +105,6 @@ const PromoBanners = () => {
       {/* Bottom gradient for text legibility */}
       <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/30 to-transparent" />
 
-      {/* Full-banner clickable link */}
-      {b.link_url && (
-        <a
-          href={b.link_url}
-          target="_blank"
-          rel="noreferrer"
-          className="absolute inset-0 z-[1]"
-          aria-label={`Visit ${b.merchant_name}`}
-        />
-      )}
-
       {/* Top-left merchant badge */}
       <div className="absolute top-3 left-4 z-[5]">
         <span className="text-[11px] font-semibold bg-black/40 backdrop-blur-sm text-white px-2.5 py-1 rounded-full border border-white/20">
@@ -119,7 +118,7 @@ const PromoBanners = () => {
       </div>
 
       {/* Bottom content */}
-      <div className="absolute bottom-0 left-0 right-0 px-5 pb-10 z-[5]">
+      <div className="absolute bottom-0 left-0 right-0 px-5 pb-10 z-[5] pointer-events-none">
         {b.headline && (
           <h3 className="text-white font-bold text-xl leading-tight drop-shadow-md line-clamp-2">
             {b.headline}
@@ -130,22 +129,12 @@ const PromoBanners = () => {
             {b.sub_text}
           </p>
         )}
-        {b.link_url && (
-          <a
-            href={b.link_url}
-            target="_blank"
-            rel="noreferrer"
-            className="inline-flex items-center gap-1.5 mt-2.5 bg-white text-gray-900 text-xs font-bold px-4 py-1.5 rounded-full hover:bg-white/90 transition-colors shadow-md"
-          >
-            View Deal <ExternalLink className="h-3 w-3" />
-          </a>
-        )}
       </div>
 
       {/* Prev arrow */}
       {banners.length > 1 && (
         <button
-          onClick={() => go(-1)}
+          onClick={e => { e.stopPropagation(); go(-1); }}
           className="absolute left-2 top-1/2 -translate-y-1/2 bg-black/40 hover:bg-black/60 backdrop-blur-sm text-white rounded-full p-1.5 transition-colors z-10"
         >
           <ChevronLeft className="h-5 w-5" />
@@ -155,7 +144,7 @@ const PromoBanners = () => {
       {/* Next arrow */}
       {banners.length > 1 && (
         <button
-          onClick={() => go(1)}
+          onClick={e => { e.stopPropagation(); go(1); }}
           className="absolute right-2 top-1/2 -translate-y-1/2 bg-black/40 hover:bg-black/60 backdrop-blur-sm text-white rounded-full p-1.5 transition-colors z-10"
         >
           <ChevronRight className="h-5 w-5" />
@@ -168,7 +157,7 @@ const PromoBanners = () => {
           {banners.map((_, i) => (
             <button
               key={i}
-              onClick={() => goTo(i)}
+              onClick={e => { e.stopPropagation(); goTo(i); }}
               className={`rounded-full transition-all duration-300 ${
                 i === current
                   ? 'w-5 h-2 bg-white'

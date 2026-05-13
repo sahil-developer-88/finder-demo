@@ -200,6 +200,7 @@ const AdminPanel = () => {
     new Set([searchParams.get('section') || 'overview'])
   );
   const [adminSidebarOpen, setAdminSidebarOpen] = useState(false);
+  const [listingJumpId, setListingJumpId] = useState<string | null>(null);
   const [adminBackStack, setAdminBackStack] = useState<{ section: string; sub: string }[]>([]);
 
   // Keep URL in sync — always replace so browser history stays clean.
@@ -1955,16 +1956,29 @@ const AdminPanel = () => {
   };
 
   const handleListingAction = async (id: string, action: string) => {
+    const prevListing = listings.find(l => l.id === id);
+
+    // ── Notify merchant their account is under review (no status change) ──────
+    if (action === 'notify_review') {
+      if (!prevListing?.user_id) return;
+      await supabase.from('notifications').insert({
+        user_id: prevListing.user_id,
+        title:   'Account Under Review',
+        message: 'Your account is currently under review by our team. We\'ll notify you once a decision has been made.',
+        type:    'info',
+        read:    false,
+      });
+      return;
+    }
+
     const statusMap: Record<string, string> = {
       approve:  'active',
       reject:   'rejected',
       suspend:  'suspended',
-
       remove:   'removed',
     };
     const newStatus = statusMap[action];
     if (!newStatus) return;
-    const prevListing = listings.find(l => l.id === id);
     await supabase.from('businesses').update({ status: newStatus }).eq('id', id);
     await supabase.from('audit_logs').insert({
       user_id:    user?.id,
@@ -1977,6 +1991,26 @@ const AdminPanel = () => {
       reason:     `Listing ${action}d by admin`,
       section:    'Listings > Moderation Queue',
     });
+
+    // Notify merchant on approve/reject/suspend
+    if (prevListing?.user_id) {
+      const notifMap: Record<string, { title: string; message: string; type: string }> = {
+        approve: { title: 'Account Approved!',  message: 'Your account has been approved. You can now start trading on the platform.',          type: 'success' },
+        reject:  { title: 'Account Not Approved', message: 'Your account application was not approved at this time. Please contact support.',   type: 'error'   },
+        suspend: { title: 'Account Suspended',  message: 'Your account has been temporarily suspended. Please contact support for assistance.', type: 'warning' },
+      };
+      const notif = notifMap[action];
+      if (notif) {
+        await supabase.from('notifications').insert({
+          user_id: prevListing.user_id,
+          title:   notif.title,
+          message: notif.message,
+          type:    notif.type,
+          read:    false,
+        });
+      }
+    }
+
     // Optimistically update local state
     setListings(prev => prev.map(l => l.id === id ? { ...l, status: newStatus } : l));
     // Also refresh overview stats
@@ -2197,6 +2231,7 @@ const AdminPanel = () => {
               loading={listingsLoading}
               onAction={handleListingAction}
               onEdit={handleListingEdit}
+              initialSelectedId={listingJumpId}
             />
           )}
           {activeSection === 'credits' && (
@@ -2221,7 +2256,15 @@ const AdminPanel = () => {
             <TaxSection sub={subSections.tax} setSub={s => setSub('tax', s)} w9Data={w9Data} w9Loading={w9Loading} annualTotals={annualTotals} annualLoading={annualLoading} taxYear={taxYear} setTaxYear={setTaxYear} auditLogs={auditLogs} auditLoading={auditLoading} />
           )}
           {activeSection === 'users' && (
-            <UsersSection users={users} loading={usersLoading} />
+            <UsersSection
+              users={users}
+              loading={usersLoading}
+              onViewAccount={(userId) => {
+                const biz = listings.find(l => l.user_id === userId);
+                setListingJumpId(biz?.id ?? userId);
+                setActiveSection('listings');
+              }}
+            />
           )}
           {activeSection === 'activity' && (
             <ActivitySection sub={subSections.activity} setSub={s => setSub('activity', s)} activityTxns={activityTxns} activityAudit={activityAudit} systemAlerts={systemAlerts} suspiciousList={suspiciousList} disputesList={disputesList} activityLoading={activityLoading} />

@@ -13,13 +13,14 @@ import MerchantDetailPanel from '@/components/admin/MerchantDetailPanel';
 import { SectionTitle, StatCard, Pill, TH, TD, SHSearch } from '@/components/admin/shared/ui';
 
 const ListingsSection = ({
-  sub, listings, loading, onAction, onEdit,
+  sub, listings, loading, onAction, onEdit, initialSelectedId,
 }: {
   sub: string;
   listings: any[];
   loading: boolean;
   onAction: (id: string, action: string) => void;
   onEdit: (id: string, data: Record<string, any>) => Promise<void>;
+  initialSelectedId?: string | null;
 }) => {
   const [selectedListing, setSelectedListing] = useState<any>(null);
   const [noteText, setNoteText] = useState('');
@@ -73,6 +74,13 @@ const ListingsSection = ({
   useEffect(() => {
     if (listings.length > 0 && !selectedListing) setSelectedListing(listings[0]);
   }, [listings]);
+
+  // Jump to a specific listing when navigated from Users section
+  useEffect(() => {
+    if (!initialSelectedId || !listings.length) return;
+    const match = listings.find(l => l.id === initialSelectedId || l.user_id === initialSelectedId);
+    if (match) setSelectedListing(match);
+  }, [initialSelectedId, listings]);
 
   const filtered = listings.filter(l =>
     !search ||

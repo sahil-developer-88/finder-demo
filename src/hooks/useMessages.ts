@@ -1,5 +1,5 @@
 
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
 import { toast } from '@/hooks/use-toast';
@@ -34,6 +34,7 @@ export const useMessages = () => {
   const [messages, setMessages] = useState<Message[]>([]);
   const [conversations, setConversations] = useState<Conversation[]>([]);
   const [loading, setLoading] = useState(true);
+  const [activeConvId, setActiveConvId] = useState<string | null>(null);
   const { user } = useAuth();
   // Track which conversation is open so realtime events go to the right place
   const activeConvIdRef = useRef<string | null>(null);
@@ -122,9 +123,37 @@ export const useMessages = () => {
     }
   };
 
+  // Append-only refresh — deduplicates by ID so it never causes scroll jumps
+  const appendNewMessages = useCallback(async (recipientId: string) => {
+    if (!user) return;
+    const { data } = await supabase
+      .from('messages')
+      .select('*')
+      .or(
+        `and(sender_id.eq.${user.id},recipient_id.eq.${recipientId}),and(sender_id.eq.${recipientId},recipient_id.eq.${user.id})`
+      )
+      .order('created_at', { ascending: true });
+
+    if (!data?.length) return;
+    setMessages(prev => {
+      const existingIds = new Set(prev.map(m => m.id));
+      const newOnes = (data as Message[]).filter(m => !existingIds.has(m.id));
+      if (!newOnes.length) return prev; // stable reference — no re-render
+      return [...prev, ...newOnes];
+    });
+  }, [user]);
+
+  // Poll the active conversation every 5 s as a realtime fallback
+  useEffect(() => {
+    if (!activeConvId || !user) return;
+    const poll = setInterval(() => appendNewMessages(activeConvId), 5000);
+    return () => clearInterval(poll);
+  }, [activeConvId, user, appendNewMessages]);
+
   const fetchMessages = async (recipientId: string) => {
     if (!user) return;
     activeConvIdRef.current = recipientId;
+    setActiveConvId(recipientId);
     try {
       const { data, error } = await supabase
         .from('messages')

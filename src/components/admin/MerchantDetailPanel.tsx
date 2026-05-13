@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import {
   Loader2, Edit2, CheckCircle, XCircle, Pause, Trash2, Plug, FileText, Clock,
-  Users, ArrowUpRight, Zap, DollarSign, Ban, Scale, Store, Plus,
+  Users, ArrowUpRight, Zap, DollarSign, Ban, Scale, Store, Plus, Bell,
 } from 'lucide-react';
 import { Pill } from './shared/ui';
 import { POSConnectionWizard } from '@/components/merchant/POSConnectionWizard';
@@ -231,6 +231,11 @@ const MerchantDetailPanel = ({ listing, onAction, onEdit, readOnly = false }: { 
           {listing.status !== 'active' && (
             <button onClick={() => onAction(listing.id, 'approve')} className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-semibold transition-all">
               <CheckCircle className="h-3.5 w-3.5" />{listing.status === 'suspended' ? 'Re-activate' : 'Approve'}
+            </button>
+          )}
+          {listing.status === 'pending' && (
+            <button onClick={() => onAction(listing.id, 'notify_review')} className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-blue-200 bg-blue-50 hover:bg-blue-100 text-blue-700 text-xs font-semibold transition-all">
+              <Bell className="h-3.5 w-3.5" />Notify: Under Review
             </button>
           )}
           {['active', 'pending'].includes(listing.status) && (
