@@ -121,7 +121,10 @@ const ListingDetail = () => {
         }
 
         const unique = Array.from(new Map(allData.map(p => [p.id, p])).values());
-        if (isMounted) setProducts(unique);
+        if (isMounted) {
+          setProducts(unique);
+          if (unique.length > 0) setActiveTab('products');
+        }
       } catch (error: any) {
         console.error('Error fetching products:', error);
       } finally {

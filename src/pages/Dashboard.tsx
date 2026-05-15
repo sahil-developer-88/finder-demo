@@ -63,7 +63,7 @@ const NAV_ITEMS = [
   { id: 'wallet',           icon: Wallet,          label: 'Wallet',           subs: [] },
   { id: 'payment-requests',    icon: CreditCard,      label: 'Payment Requests',     subs: ['Analytics', 'Daily Summary', 'Integrations', 'Transactions'] },
   { id: 'trade-send-request', icon: ArrowLeftRight,  label: 'Trade: Send / Request', subs: ['Send Barter', 'Request Barter', 'Trade Requests', 'Barter Notifications'] },
-  { id: 'orders',           icon: Package,         label: 'Orders',           subs: [] },
+  { id: 'orders',           icon: Package,         label: 'My Orders',        subs: [] },
   { id: 'reviews',          icon: Star,            label: 'Reviews',          subs: [] },
   { id: 'referrals',        icon: Gift,            label: 'Referrals',        subs: [] },
   { id: 'ledger',           icon: BookOpen,        label: 'Ledger',           subs: [] },

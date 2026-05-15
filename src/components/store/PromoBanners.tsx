@@ -79,10 +79,21 @@ const PromoBanners = () => {
     <div
       className={`relative w-full rounded-2xl overflow-hidden mb-5 select-none ${b.link_url ? 'cursor-pointer' : ''}`}
       style={{ height: 240 }}
-      onClick={() => {
+      onClick={async () => {
         if (!b.link_url) return;
-        if (b.link_url.startsWith('http')) window.open(b.link_url, '_blank', 'noreferrer');
-        else navigate(b.link_url);
+        if (b.link_url.startsWith('http')) { window.open(b.link_url, '_blank', 'noreferrer'); return; }
+        const path = b.link_url.replace(/^\//, '').split('?')[0];
+        const match = path.match(/^(listing|service)\/([^/]+)$/);
+        if (match) {
+          const businessId = match[2];
+          const { data: biz } = await supabase.from('businesses').select('user_id').eq('id', businessId).single();
+          if (biz) {
+            const { data: prof } = await supabase.from('profiles').select('business_type').eq('user_id', biz.user_id).single();
+            navigate(prof?.business_type === 'service' ? `/service/${businessId}` : `/listing/${businessId}`);
+          }
+          return;
+        }
+        navigate(b.link_url);
       }}
     >
 

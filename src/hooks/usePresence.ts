@@ -3,23 +3,23 @@ import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
 
 // ── Module-level singletons ───────────────────────────────────────────────────
-// One channel for the whole app. All hook instances share the same connection.
 const onlineUsers = new Set<string>();
 const listeners   = new Set<() => void>();
 const notify      = () => listeners.forEach(fn => fn());
 
 let channel: ReturnType<typeof supabase.channel> | null = null;
 let trackedUserId: string | null = null;
+let isSubscribed  = false;
 
 function ensureChannel(userId: string) {
-  if (channel && trackedUserId === userId) return; // already initialised for this user
+  if (channel && trackedUserId === userId) return;
 
-  // Tear down any previous channel (e.g. after a logout/re-login)
   if (channel) {
     channel.untrack().catch(() => {});
     supabase.removeChannel(channel);
     channel = null;
     trackedUserId = null;
+    isSubscribed = false;
     onlineUsers.clear();
     notify();
   }
@@ -43,9 +43,11 @@ function ensureChannel(userId: string) {
     })
     .subscribe(async (status) => {
       if (status === 'SUBSCRIBED') {
+        isSubscribed = true;
         await channel!.track({ user_id: userId });
       } else if (status === 'CHANNEL_ERROR' || status === 'TIMED_OUT') {
-        console.warn('Presence channel error:', status, '— retrying track');
+        isSubscribed = false;
+        console.warn('Presence channel error:', status, '— retrying');
         setTimeout(() => channel?.track({ user_id: userId }), 2000);
       }
     });
@@ -56,7 +58,6 @@ export const usePresence = () => {
   const { user } = useAuth();
   const [, forceRender] = useState(0);
 
-  // Register re-render listener — stable reference so cleanup actually works
   useEffect(() => {
     const handler = () => forceRender(n => n + 1);
     listeners.add(handler);
@@ -64,12 +65,19 @@ export const usePresence = () => {
   }, []);
 
   useEffect(() => {
-    if (!user) return;
-    ensureChannel(user.id);
+    if (!user?.id) return;
+    const userId = user.id;
 
-    // Re-announce presence when the tab becomes active again
+    ensureChannel(userId);
+
+    // Channel already subscribed (returning to chat after navigating away) — re-track now.
+    // First-time subscribe is handled inside the SUBSCRIBED callback above.
+    if (isSubscribed) {
+      channel?.track({ user_id: userId }).catch(() => {});
+    }
+
     const retrack = () => {
-      if (!document.hidden) channel?.track({ user_id: user.id });
+      if (!document.hidden && isSubscribed) channel?.track({ user_id: userId });
     };
     window.addEventListener('focus', retrack);
     document.addEventListener('visibilitychange', retrack);
@@ -77,8 +85,9 @@ export const usePresence = () => {
     return () => {
       window.removeEventListener('focus', retrack);
       document.removeEventListener('visibilitychange', retrack);
+      channel?.untrack().catch(() => {});
     };
-  }, [user]);
+  }, [user?.id]);
 
   const isUserOnline = useCallback((userId: string) => onlineUsers.has(userId), []);
   return { isUserOnline };

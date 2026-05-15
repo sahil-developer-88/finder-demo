@@ -4,12 +4,6 @@ import { useAuth } from '@/hooks/useAuth';
 import { Input } from '@/components/ui/input';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-} from '@/components/ui/dialog';
-import {
   Popover,
   PopoverContent,
   PopoverTrigger,
@@ -22,7 +16,7 @@ import PendingApprovalModal from '@/components/ui/PendingApprovalModal';
 import { format, isToday, isYesterday } from 'date-fns';
 import {
   Send, MessageSquare, ArrowLeft, CheckCheck,
-  PenSquare, Smile, Loader2, Coins, Check, X,
+  Smile, Loader2, Coins, Check, X,
 } from 'lucide-react';
 
 // ── Emoji list ────────────────────────────────────────────────────────────────
@@ -97,14 +91,9 @@ const InboxSection: React.FC<InboxSectionProps> = ({
 
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [selectedName, setSelectedName] = useState<string | null>(null);
-  const [search, setSearch] = useState('');
   const [text, setText] = useState('');
   const [sending, setSending] = useState(false);
   const [showChat, setShowChat] = useState(false);
-
-  // New conversation dialog
-  const [newConvOpen, setNewConvOpen] = useState(false);
-  const [newConvUserId, setNewConvUserId] = useState('');
 
   // Emoji picker
   const [emojiOpen, setEmojiOpen] = useState(false);
@@ -135,12 +124,6 @@ const InboxSection: React.FC<InboxSectionProps> = ({
     fetchMessages(id);
     setText('');
     setTimeout(() => inputRef.current?.focus(), 100);
-  };
-
-  const handleStartNew = (userId: string, name: string) => {
-    setNewConvOpen(false);
-    setNewConvUserId('');
-    openConv(userId, name);
   };
 
   const handleSend = async () => {
@@ -208,13 +191,6 @@ const InboxSection: React.FC<InboxSectionProps> = ({
     }
   };
 
-  const filteredConvs = search.trim()
-    ? conversations.filter((c) =>
-        c.recipient_name.toLowerCase().includes(search.toLowerCase()) ||
-        c.last_message.toLowerCase().includes(search.toLowerCase())
-      )
-    : conversations;
-
   const chatMessages = messages.filter(
     (m) =>
       (m.sender_id === selectedId && m.recipient_id === user?.id) ||
@@ -257,10 +233,7 @@ const InboxSection: React.FC<InboxSectionProps> = ({
             <MerchantSearchCombobox
               value=""
               onValueChange={() => {}}
-              onSelectFull={(userId, name) => {
-                openConv(userId, name);
-                setNewConvOpen(false);
-              }}
+              onSelectFull={(userId, name) => openConv(userId, name)}
             />
           </div>
 
@@ -278,17 +251,17 @@ const InboxSection: React.FC<InboxSectionProps> = ({
                   </div>
                 ))}
               </div>
-            ) : filteredConvs.length === 0 ? (
+            ) : conversations.length === 0 ? (
               <div className="flex flex-col items-center justify-center py-16 px-6 text-center">
                 <div className="w-16 h-16 rounded-full bg-[#f0f2f5] flex items-center justify-center mb-3">
                   <MessageSquare className="h-8 w-8 text-gray-400" />
                 </div>
                 <p className="text-sm font-medium text-gray-600">No chats yet</p>
-                <p className="text-xs text-gray-400 mt-1">Click the pencil icon to start chatting</p>
+                <p className="text-xs text-gray-400 mt-1">Search for a member above to start chatting</p>
               </div>
             ) : (
               <div>
-                {filteredConvs.map((conv, idx) => {
+                {conversations.map((conv, idx) => {
                   const isActive = selectedId === conv.recipient_id;
                   return (
                     <button
@@ -348,16 +321,8 @@ const InboxSection: React.FC<InboxSectionProps> = ({
                 </div>
                 <h2 className="text-2xl font-light text-gray-700 mb-2">Valuehub Exchange Web</h2>
                 <p className="text-sm text-gray-500 leading-relaxed">
-                  Send and receive messages to connect with other members.
+                  Search for a member on the left to start a conversation.
                 </p>
-                <button
-                  onClick={() => setNewConvOpen(true)}
-                  className="mt-6 flex items-center gap-2 px-6 py-2.5 rounded-full text-white text-sm font-semibold transition-all hover:opacity-90"
-                  style={{ background: '#059669' }}
-                >
-                  <PenSquare className="h-4 w-4" />
-                  New Chat
-                </button>
               </div>
             </div>
           ) : (
@@ -621,23 +586,6 @@ const InboxSection: React.FC<InboxSectionProps> = ({
         </div>
       </div>
 
-      {/* ══════════════ New Conversation Dialog ══════════════ */}
-      <Dialog open={newConvOpen} onOpenChange={(open) => { setNewConvOpen(open); if (!open) setNewConvUserId(''); }}>
-        <DialogContent className="max-w-md">
-          <DialogHeader>
-            <DialogTitle>New Chat</DialogTitle>
-          </DialogHeader>
-          <div className="space-y-4 pt-1">
-            <MerchantSearchCombobox
-              value={newConvUserId}
-              onValueChange={setNewConvUserId}
-              onSelectFull={(userId, name) => handleStartNew(userId, name)}
-            />
-            <p className="text-xs text-gray-400 text-center">Select a member to open a chat</p>
-          </div>
-          {/* dead code below kept to satisfy JSX structure — remove old block */}
-        </DialogContent>
-      </Dialog>
     </>
   );
 };

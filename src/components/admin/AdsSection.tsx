@@ -414,19 +414,23 @@ const AdsSection = ({ activeSubTab }: { activeSubTab: string }) => {
                           </p>
                         </TD>
                         <TD>
-                          {b.status === 'active'
-                            ? <span className="inline-flex items-center gap-1 text-xs text-emerald-600 font-medium"><CheckCircle className="h-3 w-3" />Active</span>
-                            : <span className="inline-flex items-center gap-1 text-xs text-gray-400 font-medium"><XCircle className="h-3 w-3" />Inactive</span>}
+                          {b.expires_at && new Date(b.expires_at) < new Date()
+                            ? <span className="inline-flex items-center gap-1 text-xs text-amber-600 font-medium"><XCircle className="h-3 w-3" />Expired</span>
+                            : b.status === 'active'
+                              ? <span className="inline-flex items-center gap-1 text-xs text-emerald-600 font-medium"><CheckCircle className="h-3 w-3" />Active</span>
+                              : <span className="inline-flex items-center gap-1 text-xs text-gray-400 font-medium"><XCircle className="h-3 w-3" />Inactive</span>}
                         </TD>
                         <td className="px-4 py-3">
                           <div className="flex items-center gap-2">
-                            <button
-                              onClick={() => toggleStatus(b)}
-                              className="text-xs text-gray-500 hover:text-gray-800 flex items-center gap-1"
-                              title={b.status === 'active' ? 'Deactivate' : 'Activate'}
-                            >
-                              {b.status === 'active' ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
-                            </button>
+                            {!(b.expires_at && new Date(b.expires_at) < new Date()) && (
+                              <button
+                                onClick={() => toggleStatus(b)}
+                                className="text-xs text-gray-500 hover:text-gray-800 flex items-center gap-1"
+                                title={b.status === 'active' ? 'Deactivate' : 'Activate'}
+                              >
+                                {b.status === 'active' ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                              </button>
+                            )}
                             {b.link_url && (
                               <a href={b.link_url} target="_blank" rel="noreferrer" className="text-gray-400 hover:text-indigo-600">
                                 <ExternalLink className="h-4 w-4" />

@@ -67,7 +67,8 @@ export const useMessages = () => {
         .from('messages')
         .select('*')
         .or(`sender_id.eq.${user.id},recipient_id.eq.${user.id}`)
-        .order('created_at', { ascending: false });
+        .order('created_at', { ascending: false })
+        .limit(500);
 
       if (error) throw error;
 
@@ -100,10 +101,19 @@ export const useMessages = () => {
           profile?.business_name || profile?.full_name || 'Unknown User';
 
         if (!conversationMap.has(otherId)) {
+          let preview = message.content;
+          if (message.message_type === 'system') {
+            try {
+              const parsed = JSON.parse(message.content);
+              if (parsed.type === 'trade_request') {
+                preview = `Trade request: ${parsed.service}`;
+              }
+            } catch { /* keep raw content */ }
+          }
           conversationMap.set(otherId, {
             recipient_id: otherId,
             recipient_name: name,
-            last_message: message.content,
+            last_message: preview,
             last_message_at: message.created_at,
             unread_count: 0,
           });

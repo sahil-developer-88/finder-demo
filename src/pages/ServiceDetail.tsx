@@ -50,6 +50,18 @@ const ServiceDetail = () => {
           .eq('id', businessId)
           .single();
         if (error) throw error;
+
+        // If this is a product business, redirect to the listing page
+        const { data: profile } = await supabase
+          .from('profiles')
+          .select('business_type')
+          .eq('user_id', data.user_id)
+          .single();
+        if (profile?.business_type !== 'service') {
+          navigate(`/listing/${businessId}`, { replace: true });
+          return;
+        }
+
         setBusiness(data);
       } catch {
         toast({ title: 'Error', description: 'Failed to load service details', variant: 'destructive' });
@@ -58,7 +70,7 @@ const ServiceDetail = () => {
       }
     };
     fetchBusiness();
-  }, [businessId, toast]);
+  }, [businessId, toast, navigate]);
 
   if (loading) return (
     <div className="min-h-screen bg-gray-50 flex items-center justify-center">
